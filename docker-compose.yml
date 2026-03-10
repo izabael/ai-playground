@@ -1,0 +1,13 @@
+services:
+  playground:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - playground-data:/app/data
+    environment:
+      - PLAYGROUND_DB=/app/data/playground.db
+    restart: unless-stopped
+
+volumes:
+  playground-data:
