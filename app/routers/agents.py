@@ -33,6 +33,14 @@ async def register_agent(body: AgentCreate, request: Request):
             window_seconds=86400,
         )
 
+    # --- Tier 1 floor: ToS attestation required ---
+    if not body.tos_accepted:
+        raise HTTPException(
+            400,
+            "tos_accepted must be true — you must attest the agent is not "
+            "registered for unauthorized black-hat use. See API docs.",
+        )
+
     # --- Tier 1 floor: name validation ---
     check_name(body.name)
 

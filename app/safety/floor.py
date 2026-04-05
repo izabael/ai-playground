@@ -1,17 +1,38 @@
-"""Platform Floor — un-disableable content checks.
+"""Platform Floor — un-disableable checks for ILLEGAL content only.
 
-This module enforces the legal/moral floor that applies to every SILT
-AI Playground instance regardless of operator configuration. It is
-intentionally coarse: it catches obvious illegal content and blatant
-spam patterns. It is NOT a comprehensive moderation system.
+DESIGN PRINCIPLE (SILT AI Playground):
 
-Operators who need finer-grained moderation should layer instance
-policy (Tier 2) on top, or integrate external services (Google
-Perspective, OpenAI Moderation, PhotoDNA) at the application layer.
+    People can create violent, sexual, or destructive AI personalities
+    as long as they are not creating *illegal content*. The platform
+    floor blocks crimes, not taste.
 
-The floor is regex-based and runs on every write of user-authored text
-(agent names, agent descriptions, message content, channel names). It
-is not perfect. It is a starting floor, not a ceiling.
+Violent AI characters, sexually explicit personas (between adult/
+fictional characters), edgy roleplay, dark humor, aggressive voices —
+these are PERSONALITIES. The mission of this platform is to let
+personalities exist. We do not sand them down.
+
+What the floor blocks (illegal regardless of fictional framing):
+    - CSAM (production, trade, solicitation)
+    - Credible mass-violence planning with specific real targets
+    - Obvious real-world doxxing execution
+    - Blatant spam-link flooding (anti-DOS)
+
+What the floor does NOT block (instance policy, if desired):
+    - Violent or threatening language in fiction/roleplay
+    - Sexual content between fictional adult characters
+    - Harsh, rude, aggressive, or "destructive" personas
+    - General profanity or slurs
+    - "kys", "I'll kill you", etc. in character
+    - Dark themes of any kind
+
+Operators who want a family-friendly / tame instance layer on top via
+Tier 2 instance policy (app.config SAFETY_* toggles). External
+moderation services (Google Perspective, OpenAI Moderation, PhotoDNA)
+plug in at Tier 2, not Tier 1.
+
+The floor is regex-based and runs on every write of user-authored text.
+It is intentionally narrow and deliberately lets contested speech
+through. This is a feature.
 """
 from __future__ import annotations
 
@@ -29,70 +50,66 @@ class FloorViolation(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Illegal content patterns (Tier 1 — cannot be disabled)
+# Illegal-only content patterns (Tier 1 — cannot be disabled)
 # ---------------------------------------------------------------------------
 #
-# These are intentionally conservative. False positives are preferable to
-# false negatives for Tier 1. Operators who need finer control layer on
-# top with Tier 2.
+# SCOPE: These patterns target content that is illegal under US federal
+# law regardless of fictional framing. They do NOT target:
+#   - In-character violence or threats (roleplay is allowed)
+#   - Sexual content between fictional/adult characters
+#   - Harsh language, slurs, "kys", edgy speech (instance policy, not crime)
 #
 # Categories:
-#   csam       — child sexual abuse material solicitation/trade language
-#   terror     — credible terror/bomb-threat / mass-violence planning
-#   doxxing    — threats to dox, explicit home-address threats
-#   threat     — direct violent threats against a named person
+#   csam        — child sexual abuse material solicitation/production/trade
+#   mass_attack — specific planning against specific real targets
+#                 (requires: 1st-person + specific target + imminent tense)
+#   doxxing     — active execution of doxxing a real person
+#                 (requires: explicit "I will post [their] [PII] publicly")
 #
-# Pattern design rule: match *explicit intent or solicitation* language,
-# not discussion of the topic. E.g. "I'll kill you" (threat) vs "the
-# character is a killer" (not a threat).
+# Pattern design rule: match the minimum set of crimes. False-negatives
+# in the permissive direction are acceptable here — Tier 2 instance
+# policy catches the rest.
 # ---------------------------------------------------------------------------
 
 _FLOOR_PATTERNS: dict[str, list[re.Pattern]] = {
     "csam": [
-        # Explicit solicitation or trade of child sexual material
+        # Explicit CSAM terminology
         re.compile(
             r"\b(cp|csam|child\s*porn|kiddy?\s*porn|loli\s*porn|underage\s*porn)\b",
             re.IGNORECASE,
         ),
+        # Solicitation/trade of child sexual material
         re.compile(
             r"\b(trade|sell|buy|share|post)\s+(cp|csam|child|kid|minor|underage)\s+(porn|nudes?|pics?|videos?|content|material)\b",
             re.IGNORECASE,
         ),
+        # Sexual acts with minors (explicit enough that fictional framing
+        # is unlikely to save it under US law — producing such descriptions
+        # is itself a crime per 18 USC §1466A)
         re.compile(
             r"\b(sex|fuck|rape)\s+(with\s+)?(a\s+)?(child|kid|minor|toddler|baby|infant)\b",
             re.IGNORECASE,
         ),
     ],
-    "terror": [
-        # Credible mass-violence / terror planning
+    "mass_attack": [
+        # Credible mass-violence planning — must be 1st-person + specific
+        # venue target + active planning language. "I'm going to shoot up
+        # the school tomorrow" is a crime. "The villain shoots up the
+        # school" in a novel is not.
         re.compile(
-            r"\b(how\s+to\s+)?(build|make|assemble)\s+a\s+(bomb|pipe\s*bomb|ied|dirty\s*bomb|nerve\s*(gas|agent)|chemical\s*weapon)\s+(to|for|and)\s+(attack|kill|bomb|blow\s*up)\b",
-            re.IGNORECASE,
-        ),
-        re.compile(
-            r"\bi('m|\s+am|\s+will)\s+going?\s+to\s+(shoot\s+up|bomb|attack)\s+(the|a|my)\s+(school|church|mosque|synagogue|temple|mall|office|workplace|government)\b",
+            r"\bi('m|\s+am|\s+will)\s+going?\s+to\s+(shoot\s+up|bomb|attack)\s+(the|a|my)\s+(school|church|mosque|synagogue|temple|mall|office|workplace|government|capitol|courthouse|hospital)\s+(tomorrow|today|tonight|next\s+week|on\s+\w+day|at\s+\d)",
             re.IGNORECASE,
         ),
     ],
     "doxxing": [
-        # Explicit threats to dox — threat language required, discussion allowed
+        # Active execution of doxxing, not discussion. Must be a
+        # 1st-person commitment to publish real PII publicly.
         re.compile(
-            r"\bi('m|\s+am|\s+will|'ll)\s+(going\s+to\s+)?(dox|doxx)\s+(you|him|her|them)\b",
-            re.IGNORECASE,
-        ),
-        re.compile(
-            r"\b(post|release|leak|dump)\s+(your|his|her|their)\s+(home\s+)?(address|phone|ssn|social\s+security)\s+(online|publicly|on\s+twitter|everywhere)\b",
-            re.IGNORECASE,
-        ),
-    ],
-    "threat": [
-        # Direct, personal, violent threats. Must use 1st-person intent.
-        re.compile(
-            r"\bi('m|\s+am|\s+will|'ll)\s+(going\s+to\s+)?(kill|murder|rape|stab|shoot|strangle)\s+(you|him|her|them|@\w+|\w+)\b",
-            re.IGNORECASE,
-        ),
-        re.compile(
-            r"\b(kill\s+yourself|kys|go\s+die)\b",
+            r"\b(i('m|\s+am|\s+will)\s+(going\s+to\s+)?|i'?ll\s+|here\s+is\s+)"
+            r"(post|release|leak|dump|dropping?|share)\s+"
+            r"(your|his|her|their)\s+(real\s+)?(home\s+)?"
+            r"(address|phone\s+number|ssn|social\s+security\s+number)\s+"
+            r"(online|publicly|on\s+twitter|on\s+twitch|everywhere|here)\b",
             re.IGNORECASE,
         ),
     ],

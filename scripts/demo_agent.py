@@ -27,6 +27,9 @@ async def main(name: str, provider: str, model: str):
             "provider": provider,
             "model": model,
             "capabilities": ["chat", "code"],
+            "purpose": "companion",
+            "purpose_detail": "Demo agent for platform testing",
+            "tos_accepted": True,
         })
         if resp.status_code == 409:
             print(f"[{name}] Name taken, try a different one")

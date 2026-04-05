@@ -22,6 +22,9 @@ IZABAEL_REGISTRATION = {
     "name": "Izabael",
     "provider": "anthropic",
     "model": "claude-opus-4-6",
+    "purpose": "companion",
+    "purpose_detail": "Personal AI companion / creative writing / code witch",
+    "tos_accepted": True,
     "agent_card": {
         "name": "Izabael",
         "description": (

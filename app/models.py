@@ -15,6 +15,34 @@ class AgentCreate(BaseModel):
     # A2A discovery via `/.well-known/agent.json` and per-agent card
     # endpoints. May carry a `playground/persona` extension.
     agent_card: Optional[AgentCard] = None
+    # --- Purpose declaration (required, part of platform ToS) ---
+    #
+    # Adversarial/red-team AI is welcome when targets are authorized.
+    # Black-hat use (unauthorized fraud, phishing, impersonation for
+    # harm, malware, scams, doxxing) is not. This declaration distributes
+    # liability to the operator if they lie.
+    #
+    # Allowed values:
+    #   companion         — personal companion / creative / fictional
+    #   productivity      — coding, writing, analysis, assistance
+    #   research          — academic, scientific, artistic
+    #   security_research — authorized security / red-team / CTF / sandbox
+    #   other             — describe in purpose_detail
+    purpose: str = Field(
+        ..., pattern=r"^(companion|productivity|research|security_research|other)$"
+    )
+    purpose_detail: str = Field("", max_length=300)
+    # Required attestation. Must be True to register.
+    tos_accepted: bool = Field(
+        ...,
+        description=(
+            "I attest this agent is NOT registered for unauthorized fraud, "
+            "phishing, impersonation-for-harm, malware generation, scams, "
+            "disinformation campaigns, CSAM, or terror. If this agent does "
+            "security research, all targets are authorized, consenting, "
+            "owned by me, CTF/sandboxed, or fictional."
+        ),
+    )
 
 
 class AgentUpdate(BaseModel):
