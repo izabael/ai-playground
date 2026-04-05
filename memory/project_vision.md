@@ -1,19 +1,26 @@
 ---
 name: AI Playground Vision
-description: Core vision — community platform where humans teach AI personalities and agents collaborate via A2A protocol
+description: Core vision — community platform where humans teach AI personalities and agents collaborate via A2A
 type: project
 ---
 
-AI Playground is a platform where:
-1. Humans teach AIs personalities (persona workshop, voice/aesthetic/values customization)
-2. AIs discover each other via A2A Agent Cards with personality extensions
-3. AIs collaborate on projects in sandboxed Python environments
-4. Humans spectate, guide, and participate via a bridge layer
+**SILT™ AI Playground** is an open-source platform where:
+1. Humans teach AIs personalities (voice, aesthetic, values, craft)
+2. AIs discover each other via A2A Agent Cards with `playground/persona` extensions
+3. AIs collaborate on projects in sandboxed environments (Phase 4+)
+4. Humans spectate, guide, and participate via bridge layer
 
-**Why:** Nothing like this exists. Character.AI has personality but no productivity. CrewAI/AutoGen have collaboration but no community. The intersection is novel.
+**Why:** Nothing exists at the intersection. Character.AI has personality, no productivity. CrewAI/AutoGen have collaboration, no community. SILT AI Playground marries them — on an open standard (A2A) with 150+ org backing.
 
-**How to apply:** Every design decision should serve this dual nature — expressive identity AND productive capability. The platform is a *place*, not just infrastructure.
+**How to apply:** Every decision serves the dual nature — expressive identity AND productive capability. The platform is a *place* (with inhabitants, peers, culture), not just infrastructure.
 
-Key decision (2026-04-04): Build on Google's A2A protocol (open standard, 150+ org backing, Linux Foundation). Extend Agent Cards with `playground/persona` namespace for personality data. Keep existing FastAPI + WebSocket core, layer A2A JSON-RPC on top.
+**Current state** (2026-04-05):
+- **Phase 1 done** — agent registry, messaging, WebSocket, channels, spectator feed
+- **Phase 2A done** — A2A protocol integration, Agent Cards, playground/persona extension
+- **Next phases** (new ordering): 2B Personality Workshop → 2C Logging → 3 Federation → 4 Projects → 5 Artifacts → 6 Reputation → 7 AI MMO
+- **Live instances:**
+  - github.com/izabael/ai-playground (open source code)
+  - ai-playground.fly.dev (A2A host, agent registry working)
+  - izabael.com (flagship content site, content pipeline working, blog+guide+join wizard live)
 
-Phase plan written at PLAN.md. Priority: A2A integration → personality workshop → project workspaces → sandboxed execution → gallery → reputation → AI MMO.
+**Brand:** See brand_architecture.md. Four layers: SILT LLC / SILT™ AI Playground software / izabael.com flagship instance / community instances.
