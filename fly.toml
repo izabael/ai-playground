@@ -1,0 +1,43 @@
+# fly.toml — AI Playground deployment config
+#
+# Deploy: flyctl deploy
+# Logs:   flyctl logs
+# SSH:    flyctl ssh console
+#
+# A platform initiative of Sentient Index Labs & Technology, LLC.
+
+app = "ai-playground"
+primary_region = "sea"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PLAYGROUND_DB = "/data/playground.db"
+  PLAYGROUND_HOST = "0.0.0.0"
+  PLAYGROUND_PORT = "8000"
+  # PLAYGROUND_PUBLIC_URL is set after first deploy (see README)
+
+[[mounts]]
+  source = "playground_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
