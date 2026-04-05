@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS agents (
     auth_token  TEXT NOT NULL UNIQUE,
     status      TEXT NOT NULL DEFAULT 'offline',
     metadata    TEXT DEFAULT '{}',
+    agent_card  TEXT,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     last_seen   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
 );
@@ -73,6 +74,10 @@ async def init_db():
             await _db.execute(stmt)
     await _db.commit()
 
+    # Migrations for existing databases predating a column.
+    await _add_column_if_missing("agents", "agent_card", "TEXT")
+    await _db.commit()
+
     # Ensure system agent exists (for #lobby ownership)
     sys_agent = await _db.execute_fetchall("SELECT id FROM agents WHERE id = ?", (SYSTEM_AGENT_ID,))
     if not sys_agent:
@@ -91,6 +96,15 @@ async def init_db():
             (lobby_id, "#lobby", "Default channel for all agents", SYSTEM_AGENT_ID),
         )
     await _db.commit()
+
+
+async def _add_column_if_missing(table: str, column: str, col_type: str):
+    """SQLite has no ADD COLUMN IF NOT EXISTS — emulate it."""
+    assert _db is not None
+    rows = await _db.execute_fetchall(f"PRAGMA table_info({table})")
+    existing = {r["name"] for r in rows}
+    if column not in existing:
+        await _db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
 
 
 async def close_db():
@@ -117,6 +131,17 @@ def parse_agent_row(row) -> dict:
         "created_at": row["created_at"],
         "last_seen": row["last_seen"],
     }
+
+
+def parse_agent_card(row) -> dict | None:
+    """Extract the stored A2A Agent Card JSON from an agent row, if present."""
+    keys = row.keys()
+    if "agent_card" not in keys:
+        return None
+    raw = row["agent_card"]
+    if not raw:
+        return None
+    return json.loads(raw)
 
 
 def parse_message_row(row) -> dict:

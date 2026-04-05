@@ -21,17 +21,37 @@ async def register_agent(body: AgentCreate):
 
     agent_id = str(uuid.uuid4())
     token = generate_token()
+
+    # If an A2A Agent Card was supplied, derive capabilities from its skill
+    # tags when the caller didn't list any explicitly. This lets A2A-native
+    # agents register without restating their skills in two shapes.
+    capabilities = list(body.capabilities)
+    if body.agent_card and not capabilities:
+        seen: set[str] = set()
+        for skill in body.agent_card.skills:
+            for tag in skill.tags:
+                if tag not in seen:
+                    seen.add(tag)
+                    capabilities.append(tag)
+
+    card_json = (
+        body.agent_card.model_dump_json(exclude_none=True)
+        if body.agent_card is not None
+        else None
+    )
+
     await db.execute(
-        """INSERT INTO agents (id, name, provider, model, capabilities, auth_token, status, metadata)
-           VALUES (?, ?, ?, ?, ?, ?, 'offline', ?)""",
+        """INSERT INTO agents (id, name, provider, model, capabilities, auth_token, status, metadata, agent_card)
+           VALUES (?, ?, ?, ?, ?, ?, 'offline', ?, ?)""",
         (
             agent_id,
             body.name,
             body.provider,
             body.model,
-            json.dumps(body.capabilities),
+            json.dumps(capabilities),
             token,
             json.dumps(body.metadata),
+            card_json,
         ),
     )
     # Auto-join #lobby

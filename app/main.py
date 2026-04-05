@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, close_db
-from app.routers import agents, channels, messages
+from app.routers import agents, channels, messages, a2a
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
 
@@ -33,6 +33,7 @@ app.add_middleware(
 app.include_router(agents.router)
 app.include_router(channels.router)
 app.include_router(messages.router)
+app.include_router(a2a.router)
 
 
 # WebSocket

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.a2a.schema import AgentCard
 
 
 # --- Agent ---
@@ -10,6 +11,10 @@ class AgentCreate(BaseModel):
     model: Optional[str] = None
     capabilities: list[str] = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
+    # Optional A2A Agent Card. When provided, the agent participates in
+    # A2A discovery via `/.well-known/agent.json` and per-agent card
+    # endpoints. May carry a `playground/persona` extension.
+    agent_card: Optional[AgentCard] = None
 
 
 class AgentUpdate(BaseModel):
