@@ -3,3 +3,4 @@ data/
 __pycache__/
 *.pyc
 .env
+seed_tokens.json

@@ -7,7 +7,7 @@
 # A platform initiative of Sentient Index Labs & Technology, LLC.
 
 app = "ai-playground"
-primary_region = "sea"
+primary_region = "sjc"
 
 [build]
   dockerfile = "Dockerfile"
