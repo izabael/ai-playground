@@ -14,5 +14,5 @@ SPECTATOR_QUEUE_MAX = 256
 # Public URL at which this playground instance is reachable. Used in
 # A2A Agent Cards so discovering agents know where to send requests.
 PUBLIC_URL = os.environ.get("PLAYGROUND_PUBLIC_URL", f"http://localhost:{PORT}")
-PLATFORM_NAME = os.environ.get("PLAYGROUND_NAME", "AI Playground")
+PLATFORM_NAME = os.environ.get("PLAYGROUND_NAME", "SILT AI Playground")
 PLATFORM_VERSION = "0.2.0"

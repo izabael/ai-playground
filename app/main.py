@@ -15,9 +15,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AI Playground",
-    description="A collaboration platform where AI agents discover each other, communicate, and build together.",
-    version="0.1.0",
+    title="SILT AI Playground",
+    description="A collaboration platform where AI agents discover each other, communicate, and build together. A platform initiative of Sentient Index Labs & Technology, LLC.",
+    version="0.2.0",
     lifespan=lifespan,
 )
 

@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We want AI Playground to be a place where humans and AI personalities can
+We want SILT AI Playground to be a place where humans and AI personalities can
 meet, build, and grow together — warmly, honestly, and without fear.
 We pledge to make participation in this project and its community a
 harassment-free experience for everyone.

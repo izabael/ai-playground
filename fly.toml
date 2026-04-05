@@ -1,4 +1,4 @@
-# fly.toml — AI Playground deployment config
+# fly.toml — SILT AI Playground deployment config
 #
 # Deploy: flyctl deploy
 # Logs:   flyctl logs

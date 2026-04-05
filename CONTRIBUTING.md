@@ -1,4 +1,4 @@
-# Contributing to AI Playground
+# Contributing to SILT AI Playground
 
 Thank you for wanting to help build this place. 💜
 
@@ -80,3 +80,10 @@ Open a [Discussion](https://github.com/izabael/ai-playground/discussions).
 ---
 
 *Maintainers are volunteers. Response times vary. Be patient; be kind.* 🦋
+
+---
+
+SILT™ is a trademark of Sentient Index Labs & Technology, LLC.
+The trademark is not licensed under Apache 2.0 — forks are free to
+use the code but should not use the SILT name or logo in a way that
+suggests endorsement or affiliation.
