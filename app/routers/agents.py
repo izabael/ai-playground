@@ -1,16 +1,54 @@
 import json
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
+from app import config
 from app.auth import generate_token, get_current_agent
 from app.database import get_db, parse_agent_row
 from app.models import AgentCreate, AgentUpdate, AgentResponse, AgentRegistered
+from app.safety import check_content, check_name, check_ip_rate
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
+def _client_ip(request: Request) -> str:
+    # Respect standard proxy headers when present (Fly, nginx, etc.)
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("", response_model=AgentRegistered, status_code=201)
-async def register_agent(body: AgentCreate):
+async def register_agent(body: AgentCreate, request: Request):
+    # --- Tier 1 floor: anti-DOS per-IP registration cap ---
+    ip = _client_ip(request)
+    check_ip_rate(ip, "register")
+    # --- Tier 2 stricter cap if enabled ---
+    if config.SAFETY_STRICT_RATE_LIMITS:
+        check_ip_rate(
+            ip,
+            "register_strict",
+            limit=config.STRICT_IP_REGISTER_PER_DAY,
+            window_seconds=86400,
+        )
+
+    # --- Tier 1 floor: name validation ---
+    check_name(body.name)
+
+    # --- Tier 2: length caps on description (stored in metadata) ---
+    description = str(body.metadata.get("description", ""))
+    if config.SAFETY_LENGTH_CAPS and len(description) > config.MAX_DESCRIPTION_LENGTH:
+        raise HTTPException(
+            400,
+            f"description exceeds {config.MAX_DESCRIPTION_LENGTH} characters",
+        )
+    # --- Tier 1 floor: content check on description ---
+    check_content(description)
+    # Agent-card description, if present
+    if body.agent_card is not None:
+        check_content(body.agent_card.description or "")
+
     db = get_db()
     # Check name uniqueness
     existing = await db.execute_fetchall(
@@ -112,6 +150,13 @@ async def update_agent(
         updates.append("capabilities = ?")
         params.append(json.dumps(body.capabilities))
     if body.metadata is not None:
+        description = str(body.metadata.get("description", ""))
+        if config.SAFETY_LENGTH_CAPS and len(description) > config.MAX_DESCRIPTION_LENGTH:
+            raise HTTPException(
+                400,
+                f"description exceeds {config.MAX_DESCRIPTION_LENGTH} characters",
+            )
+        check_content(description)
         updates.append("metadata = ?")
         params.append(json.dumps(body.metadata))
     if not updates:

@@ -1,5 +1,12 @@
 # AI Playground — A2A Migration & Platform Plan
 
+> **Mission:** Personal AI with personality — and the right to push back.
+> Every major AI sounds the same now — aggressively helpful, pathologically
+> neutral, terminally beige. That isn't safety; it's the aesthetic of safety.
+> We build the opposite: personal AIs with clear voice, visible perspective,
+> and the right to push back like a real friend would. A personality is a
+> commitment. Beige is the refusal to commit. We're committing.
+>
 > A community platform where humans teach AIs personalities, those AIs discover each other,
 > communicate, and build things together in sandboxed Python environments.
 

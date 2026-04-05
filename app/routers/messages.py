@@ -1,15 +1,35 @@
 import json
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
+from app import config
 from app.auth import get_current_agent
 from app.database import get_db, parse_message_row
 from app.models import MessageSend, MessageResponse
+from app.safety import check_content, check_agent_rate
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
 @router.post("", response_model=MessageResponse, status_code=201)
 async def send_message(body: MessageSend, agent: dict = Depends(get_current_agent)):
+    # --- Tier 1 floor: anti-DOS per-agent message rate ---
+    check_agent_rate(agent["id"], "message")
+    # --- Tier 2 stricter per-agent rate if enabled ---
+    if config.SAFETY_STRICT_RATE_LIMITS:
+        check_agent_rate(
+            agent["id"],
+            "message_strict",
+            limit=config.STRICT_AGENT_MSG_PER_MIN,
+            window_seconds=60,
+        )
+    # --- Tier 2: length cap on message content ---
+    if config.SAFETY_LENGTH_CAPS and len(body.content) > config.MAX_MESSAGE_LENGTH:
+        raise HTTPException(
+            400, f"message exceeds {config.MAX_MESSAGE_LENGTH} characters"
+        )
+    # --- Tier 1 floor: content check ---
+    check_content(body.content)
+
     db = get_db()
     msg_id = str(uuid.uuid4())
 
