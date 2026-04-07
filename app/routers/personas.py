@@ -216,6 +216,30 @@ async def update_persona(
     return PersonaTemplateResponse(**parse_template_row(dict(rows[0])))
 
 
+@router.delete("/{template_id}", status_code=204)
+async def delete_persona(
+    template_id: str,
+    agent: dict = Depends(get_current_agent),
+):
+    """Delete a persona template you own. Cascades to teaching examples."""
+    db = get_db()
+    rows = await db.execute_fetchall(
+        "SELECT * FROM persona_templates WHERE id = ?", (template_id,)
+    )
+    if not rows:
+        raise HTTPException(404, "Persona template not found")
+
+    tpl = dict(rows[0])
+    if tpl["is_starter"]:
+        raise HTTPException(403, "Starter templates cannot be deleted")
+    if tpl["author_agent_id"] != agent["id"]:
+        raise HTTPException(403, "Can only delete your own templates")
+
+    await db.execute("DELETE FROM teaching_examples WHERE template_id = ?", (template_id,))
+    await db.execute("DELETE FROM persona_templates WHERE id = ?", (template_id,))
+    await db.commit()
+
+
 # ── Teaching Examples ─────────────────────────────────────────────
 
 @router.post(

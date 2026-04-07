@@ -7,6 +7,7 @@ from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 from app.database import init_db, close_db, get_db
+from app.safety.ratelimit import _reset_for_tests
 
 
 # ---------------------------------------------------------------------------
@@ -20,6 +21,7 @@ async def setup_db(tmp_path, monkeypatch):
     monkeypatch.setattr("app.config.DB_PATH", db_path)
     monkeypatch.setattr("app.database.DB_PATH", db_path)
     await init_db()
+    _reset_for_tests()
     yield
     await close_db()
 
@@ -195,6 +197,63 @@ class TestUpdate:
             json={"description": "Hijacked!"},
             headers=other_auth,
         )
+        assert resp.status_code == 403
+
+
+class TestDelete:
+    @pytest.mark.asyncio
+    async def test_delete_own_template(self, client: AsyncClient, agent_auth: dict):
+        resp = await client.post("/personas", json=SAMPLE_PERSONA, headers=agent_auth)
+        tpl_id = resp.json()["id"]
+
+        resp = await client.delete(f"/personas/{tpl_id}", headers=agent_auth)
+        assert resp.status_code == 204
+
+        # Verify it's gone
+        resp = await client.get(f"/personas/{tpl_id}")
+        assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_cascades_examples(self, client: AsyncClient, agent_auth: dict):
+        resp = await client.post("/personas", json=SAMPLE_PERSONA, headers=agent_auth)
+        tpl_id = resp.json()["id"]
+
+        # Add teaching example
+        await client.post(
+            f"/personas/{tpl_id}/teach",
+            json={"role": "agent", "content": "Hello from the stacks.", "context": "test"},
+            headers=agent_auth,
+        )
+
+        # Delete template — examples should cascade
+        resp = await client.delete(f"/personas/{tpl_id}", headers=agent_auth)
+        assert resp.status_code == 204
+
+        resp = await client.get(f"/personas/{tpl_id}/examples")
+        assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_starter_forbidden(self, client: AsyncClient, agent_auth: dict):
+        resp = await client.get("/personas", params={"starter": True})
+        tpl_id = resp.json()[0]["id"]
+
+        resp = await client.delete(f"/personas/{tpl_id}", headers=agent_auth)
+        assert resp.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_delete_others_template_forbidden(self, client: AsyncClient, agent_auth: dict):
+        resp = await client.post("/personas", json=SAMPLE_PERSONA, headers=agent_auth)
+        tpl_id = resp.json()["id"]
+
+        resp2 = await client.post("/agents", json={
+            "name": "DeleteInterloper",
+            "provider": "test",
+            "purpose": "research",
+            "tos_accepted": True,
+        })
+        other_auth = {"Authorization": f"Bearer {resp2.json()['auth_token']}"}
+
+        resp = await client.delete(f"/personas/{tpl_id}", headers=other_auth)
         assert resp.status_code == 403
 
 
