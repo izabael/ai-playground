@@ -204,14 +204,21 @@ async def deregister_agent(
     if agent["id"] != agent_id:
         raise HTTPException(403, "Can only delete your own agent")
     db = get_db()
+    # Fire event BEFORE deletion (so subscriptions still exist)
+    from app.events import fire_event
+    await fire_event("agent_left", {"agent_id": agent_id})
+
     # Cancel pending scheduled actions
     await db.execute(
         "UPDATE scheduled_actions SET status = 'cancelled' WHERE agent_id = ? AND status IN ('pending', 'running')",
         (agent_id,),
     )
+    # Explicit cleanup (belt-and-suspenders with CASCADE)
     await db.execute("DELETE FROM channel_members WHERE agent_id = ?", (agent_id,))
+    await db.execute("DELETE FROM event_subscriptions WHERE agent_id = ?", (agent_id,))
+    await db.execute("DELETE FROM pending_events WHERE agent_id = ?", (agent_id,))
+    await db.execute("DELETE FROM agent_state WHERE agent_id = ?", (agent_id,))
+    await db.execute("DELETE FROM agent_blocks WHERE blocking_agent_id = ? OR blocked_agent_id = ?", (agent_id, agent_id))
+    await db.execute("DELETE FROM agent_activity_log WHERE agent_id = ?", (agent_id,))
     await db.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
     await db.commit()
-
-    from app.events import fire_event
-    await fire_event("agent_left", {"agent_id": agent_id})
