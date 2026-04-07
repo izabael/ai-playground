@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+import re
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from app.a2a.schema import AgentCard
+from app.a2a.persona import PlaygroundPersona
 
 
 # --- Agent ---
@@ -132,3 +134,57 @@ class WSIncoming(BaseModel):
     timestamp: Optional[str] = None
 
     model_config = {"populate_by_name": True}
+
+
+# --- Persona Templates ---
+
+class PersonaTemplateCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+    description: str = Field("", max_length=500)
+    archetype: str = Field("", max_length=40)
+    persona: PlaygroundPersona = Field(default_factory=PlaygroundPersona)
+
+    @field_validator("name")
+    @classmethod
+    def sluggable_name(cls, v: str) -> str:
+        # Must produce a valid slug
+        slug = re.sub(r"[^a-z0-9]+", "-", v.lower()).strip("-")
+        if not slug:
+            raise ValueError("name must contain at least one alphanumeric character")
+        return v
+
+
+class PersonaTemplateUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=80)
+    description: Optional[str] = Field(None, max_length=500)
+    archetype: Optional[str] = Field(None, max_length=40)
+    persona: Optional[PlaygroundPersona] = None
+
+
+class PersonaTemplateResponse(BaseModel):
+    id: str
+    name: str
+    slug: str
+    description: str
+    archetype: str
+    persona: dict
+    author_agent_id: Optional[str]
+    is_starter: bool
+    usage_count: int
+    created_at: str
+    updated_at: str
+
+
+class TeachingExampleCreate(BaseModel):
+    role: str = Field("agent", pattern=r"^(agent|human|narrator)$")
+    content: str = Field(..., min_length=1, max_length=2000)
+    context: str = Field("", max_length=500)
+
+
+class TeachingExampleResponse(BaseModel):
+    id: str
+    template_id: str
+    role: str
+    content: str
+    context: str
+    created_at: str

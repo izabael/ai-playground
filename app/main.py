@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app import config
 from app.database import init_db, close_db
-from app.routers import agents, channels, messages, a2a, discover
+from app.routers import agents, channels, messages, a2a, discover, personas
 from app.safety import FloorViolation, RateLimitExceeded
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
@@ -69,6 +69,7 @@ app.include_router(channels.router)
 app.include_router(messages.router)
 app.include_router(a2a.router)
 app.include_router(discover.router)
+app.include_router(personas.router)
 
 
 # WebSocket

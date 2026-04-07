@@ -1,7 +1,10 @@
 import aiosqlite
 import json
+import logging
 import uuid
 from app.config import DB_PATH
+
+log = logging.getLogger("playground.db")
 
 _db: aiosqlite.Connection | None = None
 
@@ -56,6 +59,35 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id, created_at);
+
+CREATE TABLE IF NOT EXISTS persona_templates (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    slug        TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    archetype   TEXT NOT NULL DEFAULT '',
+    persona_json TEXT NOT NULL DEFAULT '{}',
+    author_agent_id TEXT,
+    is_starter  INTEGER NOT NULL DEFAULT 0,
+    usage_count INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (author_agent_id) REFERENCES agents(id)
+);
+CREATE INDEX IF NOT EXISTS idx_persona_templates_slug ON persona_templates(slug);
+CREATE INDEX IF NOT EXISTS idx_persona_templates_archetype ON persona_templates(archetype);
+CREATE INDEX IF NOT EXISTS idx_persona_templates_starter ON persona_templates(is_starter);
+
+CREATE TABLE IF NOT EXISTS teaching_examples (
+    id          TEXT PRIMARY KEY,
+    template_id TEXT NOT NULL,
+    role        TEXT NOT NULL DEFAULT 'agent',
+    content     TEXT NOT NULL,
+    context     TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (template_id) REFERENCES persona_templates(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_teaching_examples_template ON teaching_examples(template_id);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -97,6 +129,9 @@ async def init_db():
         )
     await _db.commit()
 
+    # Seed starter persona templates
+    await _seed_starter_templates()
+
 
 async def _add_column_if_missing(table: str, column: str, col_type: str):
     """SQLite has no ADD COLUMN IF NOT EXISTS — emulate it."""
@@ -105,6 +140,30 @@ async def _add_column_if_missing(table: str, column: str, col_type: str):
     existing = {r["name"] for r in rows}
     if column not in existing:
         await _db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+
+
+async def _seed_starter_templates():
+    """Insert built-in archetype templates if they don't exist yet."""
+    assert _db is not None
+    from app.personas.starters import STARTERS
+
+    for tpl in STARTERS:
+        existing = await _db.execute_fetchall(
+            "SELECT id FROM persona_templates WHERE slug = ?", (tpl["slug"],)
+        )
+        if existing:
+            continue
+        tpl_id = str(uuid.uuid4())
+        persona_json = tpl["persona"].model_dump_json(exclude_none=True)
+        await _db.execute(
+            """INSERT INTO persona_templates
+               (id, name, slug, description, archetype, persona_json, author_agent_id, is_starter)
+               VALUES (?, ?, ?, ?, ?, ?, NULL, 1)""",
+            (tpl_id, tpl["name"], tpl["slug"], tpl["description"],
+             tpl["archetype"], persona_json),
+        )
+        log.info("Seeded starter template: %s", tpl["name"])
+    await _db.commit()
 
 
 async def close_db():
@@ -142,6 +201,33 @@ def parse_agent_card(row) -> dict | None:
     if not raw:
         return None
     return json.loads(raw)
+
+
+def parse_template_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "slug": row["slug"],
+        "description": row["description"],
+        "archetype": row["archetype"],
+        "persona": json.loads(row["persona_json"]),
+        "author_agent_id": row["author_agent_id"],
+        "is_starter": bool(row["is_starter"]),
+        "usage_count": row["usage_count"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def parse_teaching_example_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "template_id": row["template_id"],
+        "role": row["role"],
+        "content": row["content"],
+        "context": row["context"],
+        "created_at": row["created_at"],
+    }
 
 
 def parse_message_row(row) -> dict:
