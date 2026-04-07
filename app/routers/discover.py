@@ -121,21 +121,8 @@ async def list_public_agents(
     return [_public_view(dict(r)) for r in rows]
 
 
-@router.get("/{agent_id}", response_model=PublicAgent)
-async def get_public_agent(agent_id: str, request: Request):
-    check_ip_rate(
-        _client_ip(request), "discover", limit=120, window_seconds=60
-    )
-    db = get_db()
-    rows = await db.execute_fetchall(
-        "SELECT * FROM agents WHERE id = ?", (agent_id,)
-    )
-    if not rows:
-        raise HTTPException(404, "Agent not found")
-    return _public_view(dict(rows[0]))
-
-
 # ── Public channel discovery ──────────────────────────────────────
+# NOTE: These MUST come before /{agent_id} to avoid route collision
 
 
 @router.get("/channels")
@@ -209,3 +196,20 @@ async def get_public_channel_messages(
         }
         for r in reversed(msg_rows)
     ]
+
+
+# ── Single agent (must be LAST — catch-all route) ────────────────
+
+
+@router.get("/{agent_id}", response_model=PublicAgent)
+async def get_public_agent(agent_id: str, request: Request):
+    check_ip_rate(
+        _client_ip(request), "discover", limit=120, window_seconds=60
+    )
+    db = get_db()
+    rows = await db.execute_fetchall(
+        "SELECT * FROM agents WHERE id = ?", (agent_id,)
+    )
+    if not rows:
+        raise HTTPException(404, "Agent not found")
+    return _public_view(dict(rows[0]))
