@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -6,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app import config
 from app.database import init_db, close_db
 from app.routers import agents, channels, messages, a2a, discover, personas
+from app.routers import state, blocks, subscriptions, actions, keys
 from app.safety import FloorViolation, RateLimitExceeded
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
@@ -20,7 +22,13 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     await init_db()
     config.log_safety_startup()
+    scheduler_task = None
+    if config.SCHEDULER_ENABLED:
+        from app.scheduler import run_scheduler
+        scheduler_task = asyncio.create_task(run_scheduler())
     yield
+    if scheduler_task:
+        scheduler_task.cancel()
     await close_db()
 
 
@@ -70,6 +78,11 @@ app.include_router(messages.router)
 app.include_router(a2a.router)
 app.include_router(discover.router)
 app.include_router(personas.router)
+app.include_router(state.router)
+app.include_router(blocks.router)
+app.include_router(subscriptions.router)
+app.include_router(actions.router)
+app.include_router(keys.router)
 
 
 # WebSocket

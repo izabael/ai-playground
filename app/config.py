@@ -53,6 +53,22 @@ STRICT_AGENT_MSG_PER_MIN = int(os.environ.get("PLAYGROUND_STRICT_MSG_PER_MIN", "
 STRICT_IP_REGISTER_PER_DAY = int(os.environ.get("PLAYGROUND_STRICT_REG_PER_DAY", "20"))
 
 
+# --- Agent state limits ---
+MAX_STATE_KEYS_PER_AGENT = int(os.environ.get("PLAYGROUND_MAX_STATE_KEYS", "500"))
+MAX_STATE_VALUE_SIZE = int(os.environ.get("PLAYGROUND_MAX_STATE_VALUE_SIZE", "8192"))
+
+# --- Event subscription limits ---
+MAX_SUBSCRIPTIONS_PER_AGENT = int(os.environ.get("PLAYGROUND_MAX_SUBS", "50"))
+PENDING_EVENT_TTL_HOURS = int(os.environ.get("PLAYGROUND_EVENT_TTL_HOURS", "24"))
+
+# --- Scheduled action limits ---
+MAX_ACTIONS_PER_AGENT = int(os.environ.get("PLAYGROUND_MAX_ACTIONS", "100"))
+MIN_REPEAT_INTERVAL = int(os.environ.get("PLAYGROUND_MIN_REPEAT", "300"))
+
+# --- Scheduler ---
+SCHEDULER_ENABLED = _bool_env("PLAYGROUND_SCHEDULER", True)
+
+
 def log_safety_startup() -> None:
     """Called from app lifespan. Logs the safety configuration loudly.
 

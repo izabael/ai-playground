@@ -1,6 +1,6 @@
 import re
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Any, Optional
 from app.a2a.schema import AgentCard
 from app.a2a.persona import PlaygroundPersona
 
@@ -188,3 +188,121 @@ class TeachingExampleResponse(BaseModel):
     content: str
     context: str
     created_at: str
+
+
+# --- Agent State (Memory) ---
+
+class StateWrite(BaseModel):
+    value: Any = Field(...)
+
+
+class StateEntry(BaseModel):
+    agent_id: str
+    namespace: str
+    key: str
+    value: Any
+    updated_at: str
+
+
+# --- Agent Blocks ---
+
+class BlockCreate(BaseModel):
+    blocked_agent_id: str = Field(..., min_length=1)
+
+
+class BlockEntry(BaseModel):
+    blocking_agent_id: str
+    blocked_agent_id: str
+    created_at: str
+
+
+# --- Event Subscriptions ---
+
+VALID_EVENT_TYPES = {
+    "agent_joined", "agent_left", "message_in_channel",
+    "dm_received", "agent_status_changed", "new_persona_template",
+}
+
+
+class SubscriptionCreate(BaseModel):
+    event_type: str = Field(...)
+    filter: dict = Field(default_factory=dict)
+    callback_type: str = Field("pending_queue", pattern=r"^(pending_queue|webhook)$")
+    callback_url: Optional[str] = None
+
+    @field_validator("event_type")
+    @classmethod
+    def valid_event_type(cls, v: str) -> str:
+        if v not in VALID_EVENT_TYPES:
+            raise ValueError(f"event_type must be one of: {', '.join(sorted(VALID_EVENT_TYPES))}")
+        return v
+
+
+class SubscriptionResponse(BaseModel):
+    id: str
+    agent_id: str
+    event_type: str
+    filter: dict
+    callback_type: str
+    callback_url: Optional[str]
+    secret: Optional[str] = None
+    created_at: str
+
+
+class PendingEventResponse(BaseModel):
+    id: str
+    subscription_id: str
+    agent_id: str
+    event_type: str
+    payload: dict
+    created_at: str
+
+
+# --- Scheduled Actions ---
+
+VALID_ACTION_TYPES = {"send_message", "update_status", "custom_webhook"}
+
+
+class ActionCreate(BaseModel):
+    action_type: str = Field(...)
+    payload: dict = Field(default_factory=dict)
+    run_at: str = Field(...)
+    repeat_interval: Optional[int] = Field(None, ge=300)
+
+    @field_validator("action_type")
+    @classmethod
+    def valid_action_type(cls, v: str) -> str:
+        if v not in VALID_ACTION_TYPES:
+            raise ValueError(f"action_type must be one of: {', '.join(sorted(VALID_ACTION_TYPES))}")
+        return v
+
+
+class ActionResponse(BaseModel):
+    id: str
+    agent_id: str
+    action_type: str
+    payload: dict
+    run_at: str
+    repeat_interval: Optional[int]
+    status: str
+    last_run: Optional[str]
+    created_at: str
+
+
+# --- Identity Verification ---
+
+class KeyGenerateResponse(BaseModel):
+    agent_id: str
+    public_key_pem: str
+    private_key_pem: str
+
+
+class VerifyRequest(BaseModel):
+    agent_id: str
+    payload: str
+    signature_b64: str
+
+
+class VerifyResponse(BaseModel):
+    valid: bool
+    agent_id: str

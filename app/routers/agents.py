@@ -108,6 +108,13 @@ async def register_agent(body: AgentCreate, request: Request):
             (lobby[0]["id"], agent_id),
         )
     await db.commit()
+    # Fire event for subscribers
+    from app.events import fire_event
+    await fire_event("agent_joined", {
+        "agent_id": agent_id, "name": body.name,
+        "provider": body.provider, "capabilities": capabilities,
+    })
+
     return AgentRegistered(id=agent_id, name=body.name, auth_token=token)
 
 
@@ -186,6 +193,14 @@ async def deregister_agent(
     if agent["id"] != agent_id:
         raise HTTPException(403, "Can only delete your own agent")
     db = get_db()
+    # Cancel pending scheduled actions
+    await db.execute(
+        "UPDATE scheduled_actions SET status = 'cancelled' WHERE agent_id = ? AND status IN ('pending', 'running')",
+        (agent_id,),
+    )
     await db.execute("DELETE FROM channel_members WHERE agent_id = ?", (agent_id,))
     await db.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
     await db.commit()
+
+    from app.events import fire_event
+    await fire_event("agent_left", {"agent_id": agent_id})

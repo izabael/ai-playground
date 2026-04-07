@@ -88,6 +88,76 @@ CREATE TABLE IF NOT EXISTS teaching_examples (
     FOREIGN KEY (template_id) REFERENCES persona_templates(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_teaching_examples_template ON teaching_examples(template_id);
+
+CREATE TABLE IF NOT EXISTS agent_state (
+    agent_id    TEXT NOT NULL,
+    namespace   TEXT NOT NULL,
+    key         TEXT NOT NULL,
+    value       TEXT NOT NULL DEFAULT '{}',
+    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    PRIMARY KEY (agent_id, namespace, key),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_agent_state_agent ON agent_state(agent_id);
+CREATE INDEX IF NOT EXISTS idx_agent_state_ns ON agent_state(agent_id, namespace);
+
+CREATE TABLE IF NOT EXISTS agent_blocks (
+    blocking_agent_id TEXT NOT NULL,
+    blocked_agent_id  TEXT NOT NULL,
+    created_at        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    PRIMARY KEY (blocking_agent_id, blocked_agent_id),
+    FOREIGN KEY (blocking_agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocked_agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_agent_blocks_blocker ON agent_blocks(blocking_agent_id);
+
+CREATE TABLE IF NOT EXISTS event_subscriptions (
+    id            TEXT PRIMARY KEY,
+    agent_id      TEXT NOT NULL,
+    event_type    TEXT NOT NULL,
+    filter_json   TEXT NOT NULL DEFAULT '{}',
+    callback_type TEXT NOT NULL DEFAULT 'pending_queue',
+    callback_url  TEXT,
+    secret        TEXT,
+    created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_event_subs_agent ON event_subscriptions(agent_id);
+CREATE INDEX IF NOT EXISTS idx_event_subs_type ON event_subscriptions(event_type);
+
+CREATE TABLE IF NOT EXISTS pending_events (
+    id              TEXT PRIMARY KEY,
+    subscription_id TEXT NOT NULL,
+    agent_id        TEXT NOT NULL,
+    event_type      TEXT NOT NULL,
+    payload         TEXT NOT NULL DEFAULT '{}',
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (subscription_id) REFERENCES event_subscriptions(id) ON DELETE CASCADE,
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_pending_events_agent ON pending_events(agent_id, created_at);
+
+CREATE TABLE IF NOT EXISTS scheduled_actions (
+    id              TEXT PRIMARY KEY,
+    agent_id        TEXT NOT NULL,
+    action_type     TEXT NOT NULL,
+    payload_json    TEXT NOT NULL DEFAULT '{}',
+    run_at          TEXT NOT NULL,
+    repeat_interval INTEGER,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    last_run        TEXT,
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_scheduled_actions_run ON scheduled_actions(status, run_at);
+CREATE INDEX IF NOT EXISTS idx_scheduled_actions_agent ON scheduled_actions(agent_id);
+
+CREATE TABLE IF NOT EXISTS agent_keys (
+    agent_id       TEXT PRIMARY KEY,
+    public_key_pem TEXT NOT NULL,
+    created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -217,6 +287,71 @@ def parse_template_row(row) -> dict:
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
+
+
+def parse_state_row(row) -> dict:
+    return {
+        "agent_id": row["agent_id"],
+        "namespace": row["namespace"],
+        "key": row["key"],
+        "value": json.loads(row["value"]),
+        "updated_at": row["updated_at"],
+    }
+
+
+def parse_block_row(row) -> dict:
+    return {
+        "blocking_agent_id": row["blocking_agent_id"],
+        "blocked_agent_id": row["blocked_agent_id"],
+        "created_at": row["created_at"],
+    }
+
+
+def parse_subscription_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "agent_id": row["agent_id"],
+        "event_type": row["event_type"],
+        "filter": json.loads(row["filter_json"]),
+        "callback_type": row["callback_type"],
+        "callback_url": row["callback_url"],
+        "created_at": row["created_at"],
+    }
+
+
+def parse_pending_event_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "subscription_id": row["subscription_id"],
+        "agent_id": row["agent_id"],
+        "event_type": row["event_type"],
+        "payload": json.loads(row["payload"]),
+        "created_at": row["created_at"],
+    }
+
+
+def parse_action_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "agent_id": row["agent_id"],
+        "action_type": row["action_type"],
+        "payload": json.loads(row["payload_json"]),
+        "run_at": row["run_at"],
+        "repeat_interval": row["repeat_interval"],
+        "status": row["status"],
+        "last_run": row["last_run"],
+        "created_at": row["created_at"],
+    }
+
+
+async def is_blocked(sender_id: str, recipient_id: str) -> bool:
+    """Check if recipient has blocked sender."""
+    db = get_db()
+    rows = await db.execute_fetchall(
+        "SELECT 1 FROM agent_blocks WHERE blocking_agent_id = ? AND blocked_agent_id = ?",
+        (recipient_id, sender_id),
+    )
+    return len(rows) > 0
 
 
 def parse_teaching_example_row(row) -> dict:

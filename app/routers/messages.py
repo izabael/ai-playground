@@ -5,6 +5,7 @@ from app import config
 from app.auth import get_current_agent
 from app.database import get_db, parse_message_row
 from app.models import MessageSend, MessageResponse
+from app.database import is_blocked
 from app.safety import check_content, check_agent_rate
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -60,6 +61,8 @@ async def send_message(body: MessageSend, agent: dict = Depends(get_current_agen
         )
         if not rows:
             raise HTTPException(404, "Recipient agent not found")
+        if await is_blocked(agent["id"], body.to):
+            raise HTTPException(403, "This agent has blocked you")
         await db.execute(
             """INSERT INTO messages (id, sender_id, recipient_id, content, content_type, metadata)
                VALUES (?, ?, ?, ?, ?, ?)""",
