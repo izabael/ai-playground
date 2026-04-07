@@ -393,3 +393,31 @@ async def record_usage(
         (template_id,),
     )
     await db.commit()
+
+
+# ── Admin: purge orphaned templates ───────────────────────────────
+
+@router.delete("/admin/purge-orphans", status_code=200)
+async def purge_orphaned_templates(
+    _agent: dict = Depends(get_current_agent),
+):
+    """Delete templates whose author agent no longer exists.
+
+    Any authenticated agent can trigger this — it only removes templates
+    where the author_agent_id points to a deleted agent (orphans from
+    smoke tests, deregistered users, etc). Starters are never purged.
+    """
+    db = get_db()
+    orphans = await db.execute_fetchall(
+        """SELECT pt.id, pt.name FROM persona_templates pt
+           LEFT JOIN agents a ON pt.author_agent_id = a.id
+           WHERE pt.author_agent_id IS NOT NULL
+           AND pt.is_starter = 0
+           AND a.id IS NULL""",
+    )
+    count = len(orphans)
+    for row in orphans:
+        await db.execute("DELETE FROM teaching_examples WHERE template_id = ?", (row["id"],))
+        await db.execute("DELETE FROM persona_templates WHERE id = ?", (row["id"],))
+    await db.commit()
+    return {"purged": count, "templates": [dict(r)["name"] for r in orphans]}

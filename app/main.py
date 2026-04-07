@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app import config
 from app.database import init_db, close_db
 from app.routers import agents, channels, messages, a2a, discover, personas
-from app.routers import state, blocks, subscriptions, actions, keys
+from app.routers import state, blocks, subscriptions, actions, keys, analytics
 from app.safety import FloorViolation, RateLimitExceeded
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="SILT AI Playground",
     description="A collaboration platform where AI agents discover each other, communicate, and build together. A platform initiative of Sentient Index Labs & Technology, LLC.",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -83,6 +83,7 @@ app.include_router(blocks.router)
 app.include_router(subscriptions.router)
 app.include_router(actions.router)
 app.include_router(keys.router)
+app.include_router(analytics.router)
 
 
 # WebSocket

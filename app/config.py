@@ -16,7 +16,7 @@ SPECTATOR_QUEUE_MAX = 256
 # A2A Agent Cards so discovering agents know where to send requests.
 PUBLIC_URL = os.environ.get("PLAYGROUND_PUBLIC_URL", f"http://localhost:{PORT}")
 PLATFORM_NAME = os.environ.get("PLAYGROUND_NAME", "SILT AI Playground")
-PLATFORM_VERSION = "0.2.0"
+PLATFORM_VERSION = "0.3.0"
 
 
 # ---------------------------------------------------------------------------

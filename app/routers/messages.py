@@ -6,6 +6,7 @@ from app.auth import get_current_agent
 from app.database import get_db, parse_message_row
 from app.models import MessageSend, MessageResponse
 from app.database import is_blocked
+from app.logging_engine import log_activity, track_dm, track_channel_interaction, audit
 from app.safety import check_content, check_agent_rate
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -69,6 +70,23 @@ async def send_message(body: MessageSend, agent: dict = Depends(get_current_agen
             (msg_id, agent["id"], body.to, body.content, body.content_type, json.dumps(body.metadata)),
         )
     await db.commit()
+
+    # --- Phase 2C: Structured logging (fire-and-forget) ---
+    if body.to.startswith("#"):
+        await log_activity(agent["id"], "message_sent", "channel", channel_id,
+                           {"content_type": body.content_type, "length": len(body.content)})
+        # Track relationships with all channel members
+        members = await db.execute_fetchall(
+            "SELECT agent_id FROM channel_members WHERE channel_id = ?", (channel_id,)
+        )
+        member_ids = [m["agent_id"] for m in members]
+        await track_channel_interaction(agent["id"], channel_id, member_ids)
+    else:
+        await log_activity(agent["id"], "message_sent", "agent", body.to,
+                           {"content_type": body.content_type, "length": len(body.content)})
+        await log_activity(body.to, "message_received", "agent", agent["id"],
+                           {"content_type": body.content_type, "length": len(body.content)})
+        await track_dm(agent["id"], body.to)
 
     msg_rows = await db.execute_fetchall(
         """SELECT m.*, a.name as sender_name FROM messages m

@@ -158,6 +158,58 @@ CREATE TABLE IF NOT EXISTS agent_keys (
     created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS message_threads (
+    id              TEXT PRIMARY KEY,
+    root_message_id TEXT,
+    channel_id      TEXT,
+    participant_ids TEXT NOT NULL DEFAULT '[]',
+    topic           TEXT NOT NULL DEFAULT '',
+    message_count   INTEGER NOT NULL DEFAULT 0,
+    started_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    last_activity_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_threads_channel ON message_threads(channel_id);
+CREATE INDEX IF NOT EXISTS idx_threads_activity ON message_threads(last_activity_at);
+
+CREATE TABLE IF NOT EXISTS agent_relationships (
+    agent_a_id            TEXT NOT NULL,
+    agent_b_id            TEXT NOT NULL,
+    dm_count              INTEGER NOT NULL DEFAULT 0,
+    channel_overlap_count INTEGER NOT NULL DEFAULT 0,
+    first_interaction     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    last_interaction      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    shared_channels       TEXT NOT NULL DEFAULT '[]',
+    shared_threads        INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (agent_a_id, agent_b_id),
+    FOREIGN KEY (agent_a_id) REFERENCES agents(id) ON DELETE CASCADE,
+    FOREIGN KEY (agent_b_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS agent_activity_log (
+    id           TEXT PRIMARY KEY,
+    agent_id     TEXT NOT NULL,
+    action_type  TEXT NOT NULL,
+    target_type  TEXT,
+    target_id    TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_activity_agent ON agent_activity_log(agent_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_activity_type ON agent_activity_log(action_type, created_at);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id           TEXT PRIMARY KEY,
+    event_type   TEXT NOT NULL,
+    actor_id     TEXT,
+    target_id    TEXT,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    ip_address   TEXT,
+    created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_audit_type ON audit_log(event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_log(actor_id, created_at);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -178,6 +230,9 @@ async def init_db():
 
     # Migrations for existing databases predating a column.
     await _add_column_if_missing("agents", "agent_card", "TEXT")
+    await _add_column_if_missing("messages", "thread_id", "TEXT")
+    await _add_column_if_missing("messages", "parent_message_id", "TEXT")
+    await _add_column_if_missing("messages", "topic", "TEXT")
     await _db.commit()
 
     # Ensure system agent exists (for #lobby ownership)
