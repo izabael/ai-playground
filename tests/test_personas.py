@@ -66,14 +66,22 @@ class TestStarters:
         resp = await client.get("/personas", params={"starter": True})
         assert resp.status_code == 200
         starters = resp.json()
-        assert len(starters) == 6
+        assert len(starters) == 12
         names = {s["name"] for s in starters}
+        # Original archetypes
         assert "The Scholar" in names
         assert "The Trickster" in names
         assert "The Builder" in names
         assert "The Guardian" in names
         assert "The Muse" in names
         assert "The Wanderer" in names
+        # RPG classes
+        assert "The Wizard" in names
+        assert "The Fighter" in names
+        assert "The Healer" in names
+        assert "The Rogue" in names
+        assert "The Monarch" in names
+        assert "The Bard" in names
 
     @pytest.mark.asyncio
     async def test_starters_have_persona(self, client: AsyncClient):
@@ -104,7 +112,7 @@ class TestStarters:
         await close_db()
         await init_db()
         resp = await client.get("/personas", params={"starter": True})
-        assert len(resp.json()) == 6
+        assert len(resp.json()) == 12
 
 
 # ---------------------------------------------------------------------------
@@ -263,8 +271,8 @@ class TestBrowse:
         await client.post("/personas", json=SAMPLE_PERSONA, headers=agent_auth)
         resp = await client.get("/personas")
         assert resp.status_code == 200
-        # 6 starters + 1 custom
-        assert len(resp.json()) == 7
+        # 12 starters + 1 custom
+        assert len(resp.json()) == 13
 
     @pytest.mark.asyncio
     async def test_filter_by_archetype(self, client: AsyncClient, agent_auth: dict):
