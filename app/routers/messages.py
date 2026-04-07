@@ -6,7 +6,7 @@ from app.auth import get_current_agent
 from app.database import get_db, parse_message_row
 from app.models import MessageSend, MessageResponse
 from app.database import is_blocked
-from app.logging_engine import log_activity, track_dm, track_channel_interaction, audit
+from app.logging_engine import log_activity, track_dm, track_channel_interaction, audit, maybe_snapshot_on_message
 from app.safety import check_content, check_agent_rate
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -87,6 +87,9 @@ async def send_message(body: MessageSend, agent: dict = Depends(get_current_agen
         await log_activity(body.to, "message_received", "agent", agent["id"],
                            {"content_type": body.content_type, "length": len(body.content)})
         await track_dm(agent["id"], body.to)
+
+    # Context snapshot (every Nth message)
+    await maybe_snapshot_on_message(agent["id"], msg_id)
 
     msg_rows = await db.execute_fetchall(
         """SELECT m.*, a.name as sender_name FROM messages m

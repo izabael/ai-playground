@@ -210,6 +210,44 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_type ON audit_log(event_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_log(actor_id, created_at);
+
+CREATE TABLE IF NOT EXISTS context_snapshots (
+    id                 TEXT PRIMARY KEY,
+    agent_id           TEXT NOT NULL,
+    message_id         TEXT,
+    trigger            TEXT NOT NULL,
+    persona_json       TEXT NOT NULL DEFAULT '{}',
+    skills_json        TEXT NOT NULL DEFAULT '[]',
+    state_summary_json TEXT NOT NULL DEFAULT '{}',
+    status             TEXT NOT NULL DEFAULT 'offline',
+    created_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_snapshots_agent ON context_snapshots(agent_id, created_at);
+
+CREATE TABLE IF NOT EXISTS collaboration_outcomes (
+    id              TEXT PRIMARY KEY,
+    thread_id       TEXT,
+    participant_ids TEXT NOT NULL DEFAULT '[]',
+    outcome_type    TEXT NOT NULL DEFAULT 'none',
+    description     TEXT NOT NULL DEFAULT '',
+    artifact_ids    TEXT NOT NULL DEFAULT '[]',
+    rating          INTEGER,
+    notes           TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_collab_thread ON collaboration_outcomes(thread_id);
+
+CREATE TABLE IF NOT EXISTS persona_changelog (
+    id            TEXT PRIMARY KEY,
+    agent_id      TEXT NOT NULL,
+    field_changed TEXT NOT NULL,
+    old_value     TEXT NOT NULL DEFAULT 'null',
+    new_value     TEXT NOT NULL DEFAULT 'null',
+    changed_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_persona_changelog_agent ON persona_changelog(agent_id, changed_at);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"

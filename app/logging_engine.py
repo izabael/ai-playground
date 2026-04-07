@@ -90,6 +90,128 @@ async def track_channel_interaction(sender_id: str, channel_id: str, member_ids:
 
 # ── Audit Trail ───────────────────────────────────────────────────
 
+# ── Context Snapshots ─────────────────────────────────────────────
+
+async def take_snapshot(
+    agent_id: str,
+    trigger: str,
+    message_id: str = None,
+):
+    """Capture the agent's identity state at a point in time.
+
+    Called every Nth message, on persona update, on status change.
+    Captures persona, skills, state namespace summary, and current status.
+    """
+    try:
+        db = get_db()
+
+        # Get agent card (persona + skills)
+        agent_row = await db.execute_fetchall(
+            "SELECT agent_card, status FROM agents WHERE id = ?", (agent_id,)
+        )
+        if not agent_row:
+            return
+
+        persona_json = "{}"
+        skills_json = "[]"
+        status = agent_row[0]["status"]
+
+        card_raw = agent_row[0]["agent_card"]
+        if card_raw:
+            try:
+                card = json.loads(card_raw)
+                exts = card.get("extensions", {})
+                persona = exts.get("playground/persona", {})
+                persona_json = json.dumps(persona)
+                skills_json = json.dumps(card.get("skills", []))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # State summary: just namespace + key counts (not values — privacy)
+        state_rows = await db.execute_fetchall(
+            """SELECT namespace, COUNT(*) as cnt FROM agent_state
+               WHERE agent_id = ? GROUP BY namespace""",
+            (agent_id,),
+        )
+        state_summary = {r["namespace"]: r["cnt"] for r in state_rows}
+
+        await db.execute(
+            """INSERT INTO context_snapshots
+               (id, agent_id, message_id, trigger, persona_json, skills_json, state_summary_json, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (str(uuid.uuid4()), agent_id, message_id, trigger,
+             persona_json, skills_json, json.dumps(state_summary), status),
+        )
+        await db.commit()
+    except Exception as e:
+        log.warning("Context snapshot failed: %s", e)
+
+
+# Message counter for snapshot frequency (per agent)
+_msg_counters: dict[str, int] = {}
+SNAPSHOT_EVERY_N = 10  # snapshot every 10th message per agent
+
+
+async def maybe_snapshot_on_message(agent_id: str, message_id: str):
+    """Conditionally take a snapshot based on message frequency."""
+    count = _msg_counters.get(agent_id, 0) + 1
+    _msg_counters[agent_id] = count
+    if count % SNAPSHOT_EVERY_N == 0:
+        await take_snapshot(agent_id, "message_sent", message_id)
+
+
+# ── Persona Evolution Tracking ────────────────────────────────────
+
+async def track_persona_change(agent_id: str, old_card_json: str, new_card_json: str):
+    """Diff persona fields and log changes."""
+    try:
+        old_persona = {}
+        new_persona = {}
+
+        if old_card_json:
+            try:
+                old_card = json.loads(old_card_json)
+                old_persona = old_card.get("extensions", {}).get("playground/persona", {})
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        if new_card_json:
+            try:
+                new_card = json.loads(new_card_json)
+                new_persona = new_card.get("extensions", {}).get("playground/persona", {})
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        if not old_persona and not new_persona:
+            return
+
+        # Check each field for changes
+        all_keys = set(list(old_persona.keys()) + list(new_persona.keys()))
+        db = get_db()
+
+        for key in all_keys:
+            old_val = old_persona.get(key)
+            new_val = new_persona.get(key)
+            if old_val != new_val:
+                await db.execute(
+                    """INSERT INTO persona_changelog
+                       (id, agent_id, field_changed, old_value, new_value)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (str(uuid.uuid4()), agent_id, key,
+                     json.dumps(old_val), json.dumps(new_val)),
+                )
+
+        await db.commit()
+
+        # Take a snapshot on persona change
+        await take_snapshot(agent_id, "persona_update")
+
+    except Exception as e:
+        log.warning("Persona changelog failed: %s", e)
+
+
+# ── Audit Trail ───────────────────────────────────────────────────
+
 async def audit(
     event_type: str,
     actor_id: str = None,

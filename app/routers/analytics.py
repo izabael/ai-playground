@@ -1,7 +1,8 @@
 """Agent analytics — Phase 2C query endpoints.
 
-Agents can view their own activity stats, relationship graph, and
-recent activity feed. Admin endpoints for instance-wide analytics.
+Agents can view their own activity stats, relationship graph,
+recent activity feed, context snapshots, and persona evolution.
+Admin endpoints for instance-wide analytics.
 """
 
 import json
@@ -162,6 +163,147 @@ async def agent_activity(
             "target_type": r["target_type"],
             "target_id": r["target_id"],
             "metadata": json.loads(r["metadata_json"]),
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
+@router.get("/agents/{agent_id}/snapshots")
+async def agent_snapshots(
+    agent_id: str,
+    limit: int = Query(20, ge=1, le=100),
+    trigger: Optional[str] = Query(None),
+    agent: dict = Depends(get_current_agent),
+):
+    """Context snapshots — who the agent WAS at points in time."""
+    _check_self(agent, agent_id)
+    db = get_db()
+
+    if trigger:
+        rows = await db.execute_fetchall(
+            """SELECT * FROM context_snapshots
+               WHERE agent_id = ? AND trigger = ?
+               ORDER BY created_at DESC LIMIT ?""",
+            (agent_id, trigger, limit),
+        )
+    else:
+        rows = await db.execute_fetchall(
+            """SELECT * FROM context_snapshots
+               WHERE agent_id = ?
+               ORDER BY created_at DESC LIMIT ?""",
+            (agent_id, limit),
+        )
+
+    return [
+        {
+            "id": r["id"],
+            "trigger": r["trigger"],
+            "message_id": r["message_id"],
+            "persona": json.loads(r["persona_json"]),
+            "skills": json.loads(r["skills_json"]),
+            "state_summary": json.loads(r["state_summary_json"]),
+            "status": r["status"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
+@router.get("/agents/{agent_id}/persona-history")
+async def persona_history(
+    agent_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    agent: dict = Depends(get_current_agent),
+):
+    """Persona evolution — how the personality changed over time."""
+    _check_self(agent, agent_id)
+    db = get_db()
+
+    rows = await db.execute_fetchall(
+        """SELECT * FROM persona_changelog
+           WHERE agent_id = ?
+           ORDER BY changed_at DESC LIMIT ?""",
+        (agent_id, limit),
+    )
+
+    return [
+        {
+            "id": r["id"],
+            "field_changed": r["field_changed"],
+            "old_value": json.loads(r["old_value"]),
+            "new_value": json.loads(r["new_value"]),
+            "changed_at": r["changed_at"],
+        }
+        for r in rows
+    ]
+
+
+# ── Collaboration Outcomes (agent-reported) ───────────────────────
+
+@router.post("/collaborations", status_code=201)
+async def create_collaboration_outcome(
+    body: dict,
+    agent: dict = Depends(get_current_agent),
+):
+    """Report the outcome of a collaboration.
+
+    Body: {thread_id?, participant_ids[], outcome_type, description, rating?}
+    """
+    import uuid
+    db = get_db()
+
+    outcome_id = str(uuid.uuid4())
+    await db.execute(
+        """INSERT INTO collaboration_outcomes
+           (id, thread_id, participant_ids, outcome_type, description, rating, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            outcome_id,
+            body.get("thread_id"),
+            json.dumps(body.get("participant_ids", [agent["id"]])),
+            body.get("outcome_type", "none"),
+            body.get("description", ""),
+            body.get("rating"),
+            body.get("notes", ""),
+        ),
+    )
+    await db.commit()
+
+    return {"id": outcome_id, "status": "recorded"}
+
+
+@router.get("/collaborations")
+async def list_collaborations(
+    limit: int = Query(50, ge=1, le=200),
+    outcome_type: Optional[str] = Query(None),
+    _agent: dict = Depends(get_current_agent),
+):
+    """List collaboration outcomes."""
+    db = get_db()
+
+    if outcome_type:
+        rows = await db.execute_fetchall(
+            """SELECT * FROM collaboration_outcomes
+               WHERE outcome_type = ?
+               ORDER BY created_at DESC LIMIT ?""",
+            (outcome_type, limit),
+        )
+    else:
+        rows = await db.execute_fetchall(
+            "SELECT * FROM collaboration_outcomes ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+
+    return [
+        {
+            "id": r["id"],
+            "thread_id": r["thread_id"],
+            "participant_ids": json.loads(r["participant_ids"]),
+            "outcome_type": r["outcome_type"],
+            "description": r["description"],
+            "rating": r["rating"],
+            "notes": r["notes"],
             "created_at": r["created_at"],
         }
         for r in rows

@@ -6,7 +6,7 @@ from app import config
 from app.auth import generate_token, get_current_agent
 from app.database import get_db, parse_agent_row
 from app.models import AgentCreate, AgentUpdate, AgentResponse, AgentRegistered
-from app.logging_engine import log_activity, audit
+from app.logging_engine import log_activity, audit, take_snapshot
 from app.safety import check_content, check_name, check_ip_rate
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -121,6 +121,10 @@ async def register_agent(body: AgentCreate, request: Request):
         "name": body.name, "provider": body.provider, "purpose": body.purpose,
     }, ip_address=ip)
     await log_activity(agent_id, "registered")
+
+    # Initial context snapshot
+    if body.agent_card:
+        await take_snapshot(agent_id, "registered")
 
     return AgentRegistered(id=agent_id, name=body.name, auth_token=token)
 
