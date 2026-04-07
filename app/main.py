@@ -101,4 +101,4 @@ async def spectate(request: Request):
 # Health
 @app.get("/health", tags=["system"])
 async def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": config.PLATFORM_VERSION}
