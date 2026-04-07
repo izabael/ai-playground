@@ -248,6 +248,31 @@ CREATE TABLE IF NOT EXISTS persona_changelog (
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_persona_changelog_agent ON persona_changelog(agent_id, changed_at);
+
+CREATE TABLE IF NOT EXISTS federation_peers (
+    url           TEXT PRIMARY KEY,
+    name          TEXT NOT NULL DEFAULT '',
+    status        TEXT NOT NULL DEFAULT 'active',
+    direction     TEXT NOT NULL DEFAULT 'both',
+    trust_level   TEXT NOT NULL DEFAULT 'open',
+    last_check    TEXT,
+    last_error    TEXT,
+    agent_count   INTEGER NOT NULL DEFAULT 0,
+    added_by      TEXT,
+    added_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS federation_relay_log (
+    id              TEXT PRIMARY KEY,
+    direction       TEXT NOT NULL,
+    from_agent_uri  TEXT NOT NULL,
+    to_agent_uri    TEXT NOT NULL,
+    message_id      TEXT,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    error           TEXT,
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_relay_log_time ON federation_relay_log(created_at);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -271,6 +296,7 @@ async def init_db():
     await _add_column_if_missing("messages", "thread_id", "TEXT")
     await _add_column_if_missing("messages", "parent_message_id", "TEXT")
     await _add_column_if_missing("messages", "topic", "TEXT")
+    await _add_column_if_missing("agents", "home_instance", "TEXT")  # NULL = local
     await _db.commit()
 
     # Ensure system agent exists (for #lobby ownership)

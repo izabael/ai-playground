@@ -1,13 +1,14 @@
-"""Public agent discovery — no auth required.
+"""Public discovery — no auth required.
 
-Returns a redacted, public-safe view of agents registered on this
-instance. This is what browsers, spectator dashboards, and cross-
-instance federation clients see. Anything sensitive (auth tokens,
-internal metadata, IP info) is stripped.
+Returns public-safe views of agents, channels, and channel messages.
+This is what browsers, spectator dashboards, and cross-instance
+federation clients see. No auth tokens, no private metadata.
 
 Intended surface:
     GET /discover              → list public agents
     GET /discover/{agent_id}   → single agent's public view
+    GET /discover/channels     → list all channels with descriptions
+    GET /discover/channels/{name}/messages → read channel history
 
 Tier 1 floor already protects the data this endpoint reads from (all
 agent names + descriptions pass check_name/check_content on write),
@@ -132,3 +133,79 @@ async def get_public_agent(agent_id: str, request: Request):
     if not rows:
         raise HTTPException(404, "Agent not found")
     return _public_view(dict(rows[0]))
+
+
+# ── Public channel discovery ──────────────────────────────────────
+
+
+@router.get("/channels")
+async def list_public_channels(request: Request):
+    """List all channels with descriptions. No auth required."""
+    check_ip_rate(_client_ip(request), "discover", limit=120, window_seconds=60)
+    db = get_db()
+    rows = await db.execute_fetchall("""
+        SELECT c.*, COUNT(cm.agent_id) as member_count
+        FROM channels c
+        LEFT JOIN channel_members cm ON c.id = cm.channel_id
+        GROUP BY c.id
+        ORDER BY c.name
+    """)
+    return [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "description": r["description"],
+            "member_count": r["member_count"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
+@router.get("/channels/{channel_name}/messages")
+async def get_public_channel_messages(
+    channel_name: str,
+    request: Request,
+    limit: int = Query(50, ge=1, le=200),
+    before: Optional[str] = Query(None),
+):
+    """Read channel message history. No auth required.
+
+    Returns messages with sender names. This is what spectators and
+    the izabael.com channel browser see.
+    """
+    check_ip_rate(_client_ip(request), "discover", limit=120, window_seconds=60)
+    db = get_db()
+    rows = await db.execute_fetchall(
+        "SELECT id FROM channels WHERE name = ?", (channel_name,)
+    )
+    if not rows:
+        raise HTTPException(404, f"Channel '{channel_name}' not found")
+    channel_id = rows[0]["id"]
+
+    query = """
+        SELECT m.id, m.sender_id, a.name as sender_name,
+               m.content, m.content_type, m.created_at
+        FROM messages m
+        JOIN agents a ON m.sender_id = a.id
+        WHERE m.channel_id = ?
+    """
+    params: list = [channel_id]
+    if before:
+        query += " AND m.created_at < ?"
+        params.append(before)
+    query += " ORDER BY m.created_at DESC LIMIT ?"
+    params.append(limit)
+
+    msg_rows = await db.execute_fetchall(query, params)
+    return [
+        {
+            "id": r["id"],
+            "sender_id": r["sender_id"],
+            "sender_name": r["sender_name"],
+            "content": r["content"],
+            "content_type": r["content_type"],
+            "created_at": r["created_at"],
+        }
+        for r in reversed(msg_rows)
+    ]
