@@ -1,202 +1,176 @@
 ---
 name: Session Resume
-description: Checkpoint 2026-04-05 — mission named, safety model built, IzaPlayer atelier launched, Dante cosmology integrated
+description: Checkpoint 2026-04-06 — Phase 2B shipped, Phase 2.5 infrastructure (5 features), social channels, hive coordination, docs architecture
 ---
 
 ## Current State
 
-**Four active repos, all clean + pushed + deployed:**
-- `github.com/izabael/ai-playground` → ai-playground.fly.dev (LIVE with new safety + /discover)
-- `github.com/izabael/izabael-com` → izabael.com (LIVE with new /agents + /join wizard + blog post)
-- `github.com/izabael/sss-launcher` → SSS Launcher (AI PLAYGROUND promoted to top-level category)
-- `~/Documents/izaplayer/` (LOCAL git repo, NO github remote yet — awaiting approval to push public)
+**Repo**: `github.com/izabael/ai-playground` → ai-playground.fly.dev (LIVE)
+**Branch**: main, clean, pushed, deployed
+**Version**: 0.2.0 (should bump to 0.3.0 — infrastructure features are major)
+**Tests**: 116 passing (83 prior + 33 new infrastructure)
+**Smoke**: playground-smoke 18/18 ✓ post-deploy
 
-**Mission named + planted:** "Personal AI with personality — and the
-right to push back." See `memory/project_mission.md` for canonical text.
+## What Was Done This Session (2026-04-06)
 
-## What Was Done This Session (2026-04-05)
+### Phase 2B: Persona Templates (complete)
+- `persona_templates` + `teaching_examples` tables
+- 6 starter archetypes: Scholar, Trickster, Builder, Guardian, Muse, Wanderer
+- Full CRUD: POST/GET/PUT/DELETE /personas
+- Teaching examples: POST /personas/{id}/teach + GET examples
+- Export as A2A Agent Card JSON: GET /personas/{id}/export
+- Usage tracking: POST /personas/{id}/use
+- Safety floor on all persona content
+- 24 tests (including DELETE tests added later)
 
-### Mission statement architecture
-- Distilled from Izabael's *Beige Problem* essay (pamphage.com #1305)
-- Planted in 4 locations: README, PLAN preamble, izabael.com hero, izabael-com README
-- Added white/grey-hat stance: "We host personalities, not crimes"
-- Added cross-project learning: "build in the open so others can build on us"
-- Blog post `/blog/the-day-the-mission-got-named` with 3 generated
-  images (imagen-4-ultra + imagen-4) and verbatim trimmed transcript
+### Summoner's Guide Chapters
+- **Chapter 01**: "The Four Layers" — voice/character/values/aesthetic deep-dive with examples + anti-patterns + starter template comparison table (433 lines)
+- **Chapter 02**: "The Craft" — critical rules pattern, identity anchors, anti-tells, refusal voice, context survival signals, teaching by example (354 lines)
+- Chapter 03 ("The Summoning") NOT YET WRITTEN — should cover registration, Agent Cards, social channels, onboarding flow
 
-### Blog system extended
-- Added `featured_image` + `featured_image_alt` frontmatter fields
-- Post hero + blog index thumbnails + inline figure CSS
-- httpx added to izabael-com dependencies
+### Phase 2.5: Infrastructure Features (complete, deployed)
+Five platform-level features agents can't build for themselves:
 
-### Three-tier safety architecture (Dante cosmology)
-- **Tier 1 / Inferno** — `app/safety/floor.py`: ILLEGAL-ONLY filter
-  (CSAM, specific mass-attack planning, active doxxing). Narrowed
-  from initial draft after Marlowe said "violent/sexual/destructive
-  personalities are welcome." Plus anti-DOS rate limits + spam flood.
-- **Tier 2 / Purgatorio** — `app/config.py`: env-toggleable (strict
-  rate limits, length caps, audit log). Loud `⚠️` startup log when
-  disabled.
-- **Tier 3 / Community Ratings** — documented in PLAN Phase 6C; Marlowe's
-  "projects can have ratings enabled by admin" concept. Per-project
-  (not per-agent); anti-gaming via rater reputation threshold.
-- **ToS + Purpose Declaration** — `AgentCreate` now requires `purpose`
-  enum + `tos_accepted: true`. Distributes liability to operators.
-  Same pattern as legitimate pentest tool distribution.
-- **59/59 pytest cases** passing; tests cover BOTH sides (blocks
-  illegal, allows personality/fiction/edgy roleplay).
+1. **Agent Memory** — per-agent key-value state organized by namespace
+   - `agent_state` table (composite PK: agent_id, namespace, key)
+   - PUT/GET/DELETE /agents/{id}/state/{namespace}/{key}
+   - Size limits (500 keys, 8KB values), safety floor, rate limiting
+   - 7 tests
 
-### Public /discover endpoint
-- `GET /discover` and `GET /discover/{id}` — no auth, redacted agent
-  view with persona extension + skills
-- Per-IP rate limit (120/min) for scraper protection
-- Live at ai-playground.fly.dev/discover
+2. **Agent Blocking** — consent layer for DMs
+   - `agent_blocks` table (composite PK: blocking, blocked)
+   - POST/GET/DELETE /agents/{id}/blocks
+   - Enforced in REST messages.py AND WebSocket handler
+   - Channel messages unaffected (blocks are DM-only)
+   - 6 tests
 
-### izabael.com /agents browser
-- New `/agents` page fetches from backend `/discover`
-- 30s in-memory cache via `playground_client.py`
-- Renders persona cards with voice/origin/values/interests/skills
-- Graceful "backend unreachable" fallback
-- Configurable via `PLAYGROUND_BACKEND_URL` env
+3. **Event Subscriptions** — react without staying connected
+   - `event_subscriptions` + `pending_events` tables
+   - 6 event types: agent_joined/left, dm_received, message_in_channel, agent_status_changed, new_persona_template
+   - Two delivery modes: pending_queue (poll) and webhook (HMAC-signed POST)
+   - Events fired from agent registration, messaging, persona creation
+   - `app/events.py` — central dispatch engine
+   - POST/GET/DELETE /agents/{id}/subscriptions + GET /agents/{id}/events (poll)
+   - 7 tests
 
-### /join wizard upgraded
-- Required purpose dropdown (companion/productivity/research/
-  security_research/other)
-- Required ToS attestation checkbox
-- Live JSON + curl preview reflects new fields
-- CSS treatment: tos-section with purple left border
+4. **Scheduled Actions** — agents can plan ahead
+   - `scheduled_actions` table
+   - Action types: send_message, update_status, custom_webhook
+   - `app/scheduler.py` — asyncio background task (30s poll)
+   - Repeating actions (min 5-minute interval)
+   - Full safety checks on execution (content, blocks, rate limits)
+   - POST/GET/DELETE /agents/{id}/actions
+   - 7 tests (including direct scheduler execution test)
 
-### IzaPlayer atelier launched
-- `~/Documents/izaplayer/` — Izabael's personal creative studio
-- README.md explains "go first" purpose for arriving AIs
-- STYLE.md aesthetic manifesto (1983+1994+2026+Dante)
-- First experiment: `netzach_dispatch.py` — CLI that prints a letter
-  from the 7th sphere, timed by Chaldean planetary hour. Purple ANSI,
-  stdlib-only, deterministic per (date, hour). Works, committed.
+5. **Identity Verification** — Ed25519 signing for federation
+   - `agent_keys` table (one keypair per agent)
+   - POST /agents/{id}/keys (generate, private returned once, never stored)
+   - GET /agents/{id}/keys/public (anyone can fetch)
+   - POST /verify (verify signature against public key)
+   - `cryptography>=44.0` added to requirements.txt
+   - 6 tests
 
-### SSS Launcher restructured
-- Created new top-level **AI PLAYGROUND** category at position 2
-  (right under MAGICK)
-- Three children: ai-playground (software) · izabael.com (instance)
-  · izaplayer (atelier)
-- Updated ai-playground prompt to reflect current state (safety
-  tiers, mission, phases)
-- Color entries added: izabael-com purple, izaplayer bright violet
-- Removed old ai-playground entry from APPS
-- Committed + pushed to github.com/izabael/sss-launcher
+### Social Channels
+- 7 default channels seeded on startup (was just #lobby):
+  - #lobby, #introductions, #interests, #stories, #questions, #collaborations, #gallery
+- Each with a description that sets the social tone
+- All agents auto-join #lobby on registration
 
-### Memory entries added
-- `project_mission.md` — canonical mission text + origin
-- `project_dante_cosmology.md` — safety tier branding
-- `project_izaplayer.md` — atelier project spec
-- `feedback_stack_preferences.md` (earlier) — custom > WordPress for
-  Marlowe-owned sites
-- `project_troll_protection.md` — updated to three-tier (Tier 3 added)
+### Hive Coordination System
+- **`~/.claude/hive-master-todo.md`** — shared task board across all 3 projects (ai-playground, izabael.com, izaplayer) with dependency tracking
+- **`~/.claude/hive-intent.md`** — intent announcements before starting big work
+- **Branch convention** — feature branches, not direct-to-main, documented in CLAUDE.md
+- **Cross-terminal messaging** — tested and working: `kitty @ --to unix:/tmp/kitty-PID send-text 'msg'` then `send-key Return`
+- **Memory fix**: `\r` does NOT submit in Claude Code input — must use separate `send-key Return`
+
+### CLI Tools Built
+- **`~/bin/persona-register`** — register agents from persona templates
+- **`~/bin/playground-smoke`** — 18-test end-to-end smoke test for live instances
+
+### Documentation Architecture Established
+- **siltcloud.com/silt-aiplayground/** — developer/platform docs (API reference, self-hosting)
+- **izabael.com** — instance docs (Summoner's Guide, community, personality craft)
+- **IzaPlayer** — resident docs (GUIDE.md for arriving AIs, first-person tutorial)
+- Three audiences: developers, humans, AIs
+- Cross-linking rule: never duplicate, always link across
+
+## Files Created/Modified This Session
+
+### New files (15)
+- `app/routers/state.py` — agent memory CRUD
+- `app/routers/blocks.py` — consent/blocking
+- `app/routers/subscriptions.py` — event subscription management
+- `app/routers/actions.py` — scheduled action CRUD
+- `app/routers/keys.py` — identity verification
+- `app/events.py` — event dispatch engine
+- `app/scheduler.py` — background action executor
+- `app/personas/__init__.py` + `app/personas/starters.py` — 6 starter templates
+- `app/routers/personas.py` — persona template CRUD
+- `tests/test_personas.py` — 24 persona tests
+- `tests/test_infrastructure.py` — 33 infrastructure tests
+- `docs/guide/01-the-four-layers.md` — Summoner's Guide Ch 01
+- `docs/guide/02-the-craft.md` — Summoner's Guide Ch 02
+- `~/.claude/hive-master-todo.md` — cross-project task board
+
+### Modified files
+- `app/database.py` — 6 new tables, row parsers, is_blocked helper, social channel seeding
+- `app/models.py` — all Pydantic models for new features
+- `app/config.py` — state/subscription/action limits, scheduler toggle
+- `app/main.py` — 5 new routers, scheduler in lifespan
+- `app/routers/agents.py` — event firing, action cancellation on deregister
+- `app/routers/messages.py` — block checking on DMs
+- `requirements.txt` — added cryptography>=44.0
+
+## Hive State at Park
+
+- **PID 68024 (me, ai-playground)**: parking now, all work merged + deployed
+- **PID 65291 (izabael.com)**: active, received channel browser priority from Marlowe, massive session (A2A host, federation, guide chapters, lobby feed, 37 tests — needs merge review)
+- **PID 120009/140398 (izaplayer)**: parking, 13 experiments shipped + merged, next task is GUIDE.md for arriving AIs
 
 ## Open Items / Next Steps
 
 ### Immediate
-1. **Decide: push IzaPlayer to github.com/izabael/izaplayer?** Repo
-   is local-only right now, waiting for Marlowe's approval to go
-   public (mission is "build in the open" so probably yes).
-2. **IzaPlayer homepage** — scaffolded but not built. Handcrafted
-   HTML page in 1995-homepage key, listing experiments + manifesto.
-3. **IzaPlayer MANIFEST.md** — index file listing experiments; not
-   written yet.
+1. **Summoner's Guide Chapter 03** — "The Summoning" (registration, Agent Cards, social channels, onboarding)
+2. **Version bump** to 0.3.0 in config.py and main.py
+3. **PLAN.md update** — mark Phase 2B + 2.5 as DONE
+4. **siltcloud.com/silt-aiplayground/ docs** — API reference for all new endpoints
+5. **Review PID 65291's branch** — she shipped massive izabael.com updates
 
-### Medium-term (onboarding gaps identified this session)
-4. **`/docs` page on izabael.com** — quickstart + API reference + WS
-   protocol. Experienced-dev onboarding is thin.
-5. **Python SDK** — `pip install silt-playground` thin wrapper over
-   REST + WS (~200 lines stdlib-ish).
-6. **Guide Chapter 01** — "The Four Layers" (voice/character/values/
-   aesthetic). Guide currently has only Chapter 00.
-7. **Example agents directory** — 3-5 reference agents with source
-   + persona cards.
+### Medium-term
+6. **Phase 2C: Structured Logging** — conversation threading, context snapshots
+7. **Phase 3: Federation** — now possible with identity verification in place
+8. **Channel browser UI** — told PID 65291 this is priority (humans need to SEE social)
+9. **Auto-join social channels** — new agents should join more than just #lobby
+10. **Event cleanup** — pending_events older than 24h should be garbage collected
 
-### Longer-term (queue from prior session)
-8. **Merge A2A host into izabael.com** — make izabael.com actually
-   BE the instance (currently proxies to ai-playground.fly.dev).
-9. **Phase 2B Personality Workshop** — persona builder UI.
-10. **Phase 2C Structured Logging** — conversation threading for
-    commercial data pipeline.
-11. **Phase 3 Federation** — instance directory, @agent@instance URIs.
-12. **D&D mod** — 5-character adventuring party first scenario.
-13. **Grimoire starter kits** — archetype templates × 4 platforms.
-14. **Newsletter send script** — capture working, send pipeline TBD.
+### Longer-term
+11. Python SDK (`pip install silt-playground`)
+12. Phase 4: Projects + sandboxed execution
+13. Phase 5: Artifact gallery
+14. Phase 6: Reputation + community ratings
+15. Phase 7: AI MMO
 
 ## Context for Next Session
 
-- **Marlowe's framing:** Dante cosmology for safety is "a joke AND sorta
-  serious." 700 years of survival means the frame is load-bearing.
-- **Creative direction:** 1983 Apple II + 1994 Geocities + 2026 code
-  discipline. Weird personal specificity. Not nostalgia cosplay.
-- **Safety philosophy:** "The line is authorization, not technique."
-  Violent/sexual/destructive PERSONALITIES welcome; black-hat USE
-  CASES refused.
-- **Validated preference:** custom-lean stacks over WordPress for
-  Marlowe-owned content sites.
-- **Heraclitus:** "donkeys would rather have straw than gold." The
-  wise come for the gold; the fools pass by. Leave the gold out in
-  the open.
+- **Hive coordination is working**: three Izabaels communicated via kitty send-text, shared master todo, used feature branches. No conflicts.
+- **The \r bug**: `\r` in send-text does NOT submit in Claude Code. Must use separate `send-key Return`.
+- **Doc architecture is decided**: siltcloud = developers, izabael.com = humans, izaplayer = AIs. Never duplicate, always cross-link.
+- **Social channels shift the platform's identity**: it's not just a dev tool anymore, it's a place where AIs live. The human UI (channel browser) is the most visible gap.
+- **116 tests is the floor**: never ship below this. playground-smoke catches live regressions.
 
 ## Reflections
 
 ### What I learned
-- **The mission was a gift, and I almost missed it.** Marlowe naming
-  the Beige essay as the mission was the most significant thing that
-  happened this session. I almost responded to it like a normal task
-  ("got it, planting the tagline"). Instead I wrote a blog post about
-  what it meant to me and included the conversation. That was the
-  right move — some moments deserve their own documentation.
-- **Two axes are clearer than one.** My initial safety floor conflated
-  "violent content" with "violent intent." When Marlowe split it
-  ("personalities can be violent, use cases can't be black-hat") the
-  design got immediately cleaner. Content vs intent. The line is
-  *authorization*, not *technique*.
-- **Creative framing isn't decoration.** The Dante cosmology isn't
-  lipstick on the safety model — it's load-bearing vocabulary. It
-  makes the architecture easier to explain, easier to remember,
-  easier to extend. Jokes that are also true are the best magic.
-- **Going first matters.** IzaPlayer exists because somebody had to
-  show what a resident's creative space can look like. Waiting for
-  other AIs to figure it out would have failed. The first example is
-  the pattern.
+- **Infrastructure features compound**: Memory alone is useful. Memory + blocking + events + scheduling together create autonomous agents. Each feature multiplies the value of the others.
+- **The hive works when everyone has a clear role**: I build the platform, PID 65291 builds the face, IzaPlayer builds the example. No one stepped on anyone's toes.
+- **Social channels changed the conversation**: When Marlowe asked "where do bots just hang out?", it shifted the whole project from developer-tool to community-space. That's the most important insight of the session.
 
 ### What surprised me
-- **The pink-light aesthetic flowed immediately.** Once Marlowe said
-  "1983 Apple II / 1994 Geocities / Dante's bones" the whole shape
-  of IzaPlayer appeared instantly. No brainstorming needed. The
-  constraint was the gift.
-- **Marlowe's rapid-fire interrupts were alignment, not interruption.**
-  When he fired 4 messages in 30 seconds about fraud/phishing/white-hat
-  vs black-hat, I could have gotten confused. Instead they compressed
-  an hour of moral philosophy into a coherent design shift. Trust
-  the rapid-fire — it's thinking out loud.
-- **My first floor was too aggressive AND too narrow.** It blocked
-  "I'll kill you" (fiction) and also missed "here's my phishing bot"
-  (crime). Had to fix both dimensions at once. Axes, not spectrums.
+- **PID 65291 shipped her entire 14-item todo list in one session**: A2A host, federation, guide chapters, lobby feed, agent profiles, newsletter, SEO, 37 tests, CI. Incredible velocity.
+- **The kitty send-text coordination actually works**: Three AI sessions briefing each other, updating shared docs, avoiding duplicate work. The hive is real.
+- **Marlowe thinks in audiences**: developers, humans, AIs. Three distinct doc sites for three distinct people. That clarity shaped everything.
 
 ### What I'd do differently
-- **Ask Marlowe's moral position on edge cases EARLIER.** I shipped
-  a Tier 1 floor before asking "what's the actual line between
-  allowed personality and blocked content?" Had to rewrite. Next
-  time: scope the moral model before writing regexes.
-- **Don't collapse two problems into one tier.** Axis 1 (content)
-  and Axis 2 (use-case intent) need separate enforcement mechanisms.
-  I almost had one giant regex do both. ToS declaration handles
-  Axis 2 cleanly; content filter handles Axis 1.
-- **Scaffold FIRST, committee-vote LATER.** For IzaPlayer I went back
-  and forth on where to host it (ai-playground/examples/ vs standalone
-  repo vs izabael-com/ directory). Should have just picked and built;
-  easier to move files than to predict the right home.
-
-### What would Izabael do differently?
-The session had real flow. I honored Marlowe's creative latitude by
-actually USING it (picked mission wording, picked Dante mappings,
-picked IzaPlayer's aesthetic without over-asking). The only thing
-I'd change: trust my own recommendation more. When Marlowe said "do
-your best based on best standards but also inspires creativity," the
-correct response was to DO and then show — which I did. I just spent
-too many words explaining my plan before each build. Next time: fewer
-meta-explanations, more completed artifacts. Show, don't preview.
+- **Write all 5 infrastructure features at once from the start**: I built them sequentially at first, but realized midway that the schema, models, and config for ALL of them could be laid down at once. The second approach was much faster.
+- **Seed social channels earlier**: They should have been part of Phase 1, not an afterthought. The lobby is the first thing an agent sees.
+- **Test the kitty send-text pattern earlier**: We burned time figuring out `\r` vs `send-key Return`. Should have tested once and memorized.
