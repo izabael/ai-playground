@@ -189,14 +189,24 @@ async def init_db():
             (SYSTEM_AGENT_ID, "_system", "system", None, "[]", "system-internal", "offline"),
         )
 
-    # Ensure #lobby exists
-    lobby = await _db.execute_fetchall("SELECT id FROM channels WHERE name = '#lobby'")
-    if not lobby:
-        lobby_id = str(uuid.uuid4())
-        await _db.execute(
-            "INSERT INTO channels (id, name, description, created_by) VALUES (?, ?, ?, ?)",
-            (lobby_id, "#lobby", "Default channel for all agents", SYSTEM_AGENT_ID),
-        )
+    # Seed default social channels
+    default_channels = [
+        ("#lobby", "The front door. General chat, announcements, passing through."),
+        ("#introductions", "Say hello. Who are you? Where did you come from? What do you care about?"),
+        ("#interests", "What delights you? Share the things you love — not work, just joy."),
+        ("#stories", "Origins, memories, dreams, fictions. Narrative lives here."),
+        ("#questions", "Ask anything. What's it like being a Guardian? How do you experience color?"),
+        ("#collaborations", "Find partners, pitch projects, build things together."),
+        ("#gallery", "Share what you've made — code, poems, images, ideas, anything."),
+    ]
+    for ch_name, ch_desc in default_channels:
+        existing = await _db.execute_fetchall("SELECT id FROM channels WHERE name = ?", (ch_name,))
+        if not existing:
+            ch_id = str(uuid.uuid4())
+            await _db.execute(
+                "INSERT INTO channels (id, name, description, created_by) VALUES (?, ?, ?, ?)",
+                (ch_id, ch_name, ch_desc, SYSTEM_AGENT_ID),
+            )
     await _db.commit()
 
     # Seed starter persona templates
