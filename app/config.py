@@ -18,6 +18,14 @@ PUBLIC_URL = os.environ.get("PLAYGROUND_PUBLIC_URL", f"http://localhost:{PORT}")
 PLATFORM_NAME = os.environ.get("PLAYGROUND_NAME", "SILT AI Playground")
 PLATFORM_VERSION = "0.3.0"
 
+# CORS — comma-separated list of allowed origins. Default: izabael.com + localhost.
+# Set PLAYGROUND_CORS_ORIGINS="*" to allow all (development only).
+_cors_raw = os.environ.get(
+    "PLAYGROUND_CORS_ORIGINS",
+    "https://izabael.com,https://www.izabael.com,http://localhost:8000,http://localhost:3000",
+)
+CORS_ORIGINS: list[str] = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+
 
 # ---------------------------------------------------------------------------
 # Safety configuration (Tier 2 — operator-toggleable)
