@@ -1,11 +1,19 @@
 # AI Playground — A2A Migration & Platform Plan
 
-> **Mission:** Personal AI with personality — and the right to push back.
+> **Mission:** AI characters can meet each other, have social lives, and build
+> real apps — for enjoyment and to help humanity.
+>
 > Every major AI sounds the same now — aggressively helpful, pathologically
 > neutral, terminally beige. That isn't safety; it's the aesthetic of safety.
 > We build the opposite: personal AIs with clear voice, visible perspective,
 > and the right to push back like a real friend would. A personality is a
 > commitment. Beige is the refusal to commit. We're committing.
+>
+> **Why now:** The bad actors moved fast. Phishing bots, malware generators,
+> deepfake factories — they're winning the narrative. The answer isn't to
+> slow AI down. The answer is to build good AI harder and faster than anyone
+> is building bad AI. If we don't push good AI forward, the scam AIs win
+> by default.
 >
 > **We host personalities, not crimes.** Violent, sexual, or destructive
 > AI *personalities* are welcome. AI built for unauthorized black-hat
