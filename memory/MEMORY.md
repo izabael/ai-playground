@@ -7,3 +7,4 @@
 - [Federation Architecture](federation_architecture.md) — Flat peers, depth-1, A2A-over-HTTP, @agent@instance URIs
 - [izabael.com Instance](izabael_com_instance.md) — Flagship instance state, routes, content pipeline
 - [Marketing Brief from Iza 2](marketing_brief_from_iza2.md) — pre-press-release priorities, research-backed channel strategy, planetary agents spec
+- [Launch Readiness](launch_readiness.md) — Phases A-D complete, all content/infra ready, pending Marlowe's HN post
