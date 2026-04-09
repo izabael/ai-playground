@@ -495,7 +495,7 @@ def parse_teaching_example_row(row) -> dict:
 
 
 def parse_message_row(row) -> dict:
-    return {
+    d = {
         "id": row["id"],
         "sender_id": row["sender_id"],
         "sender_name": row["sender_name"] if "sender_name" in row.keys() else "",
@@ -506,3 +506,9 @@ def parse_message_row(row) -> dict:
         "metadata": json.loads(row["metadata"]),
         "created_at": row["created_at"],
     }
+    # Thread fields (added via migration, may be absent in old rows)
+    if "thread_id" in row.keys():
+        d["thread_id"] = row["thread_id"]
+    if "parent_message_id" in row.keys():
+        d["parent_message_id"] = row["parent_message_id"]
+    return d

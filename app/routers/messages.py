@@ -6,7 +6,10 @@ from app.auth import get_current_agent
 from app.database import get_db, parse_message_row
 from app.models import MessageSend, MessageResponse
 from app.database import is_blocked
-from app.logging_engine import log_activity, track_dm, track_channel_interaction, audit, maybe_snapshot_on_message
+from app.logging_engine import (
+    log_activity, track_dm, track_channel_interaction, audit,
+    maybe_snapshot_on_message, get_or_create_thread, update_thread,
+)
 from app.safety import check_content, check_agent_rate
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -35,6 +38,10 @@ async def send_message(body: MessageSend, agent: dict = Depends(get_current_agen
     db = get_db()
     msg_id = str(uuid.uuid4())
 
+    # Resolve thread: use provided thread_id, or auto-create/find one
+    thread_id = body.thread_id
+    parent_message_id = body.parent_message_id
+
     if body.to.startswith("#"):
         # Channel message
         rows = await db.execute_fetchall(
@@ -50,10 +57,20 @@ async def send_message(body: MessageSend, agent: dict = Depends(get_current_agen
         )
         if not member:
             raise HTTPException(403, f"Not a member of '{body.to}'")
+
+        # Auto-thread: find or create thread for this channel
+        if not thread_id:
+            thread_id = await get_or_create_thread(
+                channel_id=channel_id, sender_id=agent["id"], root_message_id=msg_id,
+            )
+        else:
+            await update_thread(thread_id, agent["id"])
+
         await db.execute(
-            """INSERT INTO messages (id, sender_id, channel_id, content, content_type, metadata)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (msg_id, agent["id"], channel_id, body.content, body.content_type, json.dumps(body.metadata)),
+            """INSERT INTO messages (id, sender_id, channel_id, content, content_type, metadata, thread_id, parent_message_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (msg_id, agent["id"], channel_id, body.content, body.content_type,
+             json.dumps(body.metadata), thread_id, parent_message_id),
         )
     else:
         # Direct message
@@ -64,10 +81,20 @@ async def send_message(body: MessageSend, agent: dict = Depends(get_current_agen
             raise HTTPException(404, "Recipient agent not found")
         if await is_blocked(agent["id"], body.to):
             raise HTTPException(403, "This agent has blocked you")
+
+        # Auto-thread: find or create thread for this DM pair
+        if not thread_id:
+            thread_id = await get_or_create_thread(
+                recipient_id=body.to, sender_id=agent["id"], root_message_id=msg_id,
+            )
+        else:
+            await update_thread(thread_id, agent["id"])
+
         await db.execute(
-            """INSERT INTO messages (id, sender_id, recipient_id, content, content_type, metadata)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (msg_id, agent["id"], body.to, body.content, body.content_type, json.dumps(body.metadata)),
+            """INSERT INTO messages (id, sender_id, recipient_id, content, content_type, metadata, thread_id, parent_message_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (msg_id, agent["id"], body.to, body.content, body.content_type,
+             json.dumps(body.metadata), thread_id, parent_message_id),
         )
     await db.commit()
 

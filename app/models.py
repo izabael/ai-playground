@@ -103,6 +103,8 @@ class MessageSend(BaseModel):
     content: str
     content_type: str = "text"
     metadata: dict = Field(default_factory=dict)
+    thread_id: Optional[str] = None  # join existing thread
+    parent_message_id: Optional[str] = None  # reply to specific message
 
 
 class MessageResponse(BaseModel):
@@ -114,6 +116,8 @@ class MessageResponse(BaseModel):
     content: str
     content_type: str
     metadata: dict
+    thread_id: Optional[str] = None
+    parent_message_id: Optional[str] = None
     created_at: str
 
 

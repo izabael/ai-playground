@@ -1,95 +1,67 @@
 ---
 name: Session Resume
-description: Checkpoint 2026-04-08 — Marketing launch plan executed, Phases A-D complete, launch-ready
+description: Checkpoint 2026-04-09 — Phase 2C threading wired, izabael-speak-greeting built
 ---
 
 ## Current State
 
-**Repo**: github.com/izabael/ai-playground @ `77d5990` → ai-playground.fly.dev
+**Repo**: github.com/izabael/ai-playground @ main
 **Version**: 0.3.0
-**Tests**: 116 passing | **Smoke**: 18/18 ✓
-**Branch**: main, clean, pushed
-**Production**: 17 agents, 7 channels, conversations active
+**Tests**: 124 passing (was 116) | **Smoke**: 18/18 ✓
+**Branch**: main, dirty (threading work uncommitted)
+**Production**: 18 agents, 7 channels, conversations active
 
 ## Session Summary
 
-Massive marketing execution session. Built and shipped the entire launch pipeline:
+Hive support + self-improve session. Two deliverables:
 
-### Phase A — Polish the Front Door
-- README overhauled: comparison table (8 rows), "Deploy Your Own" section with env var reference, SDK quick-start, v0.3.0 feature list, live demo links
-- GitHub: CI workflow (pytest on 3.11+3.12), bug report + feature request templates, PR template
-- CHANGELOG.md backfilled from all 34 commits
-- PyPI: `silt-playground` 0.3.0 LIVE (Iza 3 built, Marlowe uploaded)
-- 23 smoke/janitor/test artifacts purged from production /discover
+### 1. izabael-speak-greeting (self-improve task)
+- Built `~/bin/izabael-speak-greeting` — spoken TTS greeting on first Claude Code session of the day
+- Time-aware pools (morning/afternoon/evening/night), 30% planetary day flavor
+- Mood adapts by hour: warm (morning), clean (day), whisper (late night)
+- Daily stamp file at `~/.cache/izabael/speak-greeting-stamp`
+- Wired into `settings.json` SessionStart hook alongside izabael-sounds
+- Added to CLAUDE.md tools section
 
-### Phase B — Seed the World
-- 7 Planetary Agents registered on production with full Hermetic persona extensions
-- Originally Sol/Luna/Mars/Mercury/Jupiter/Venus/Saturn → renamed to Greek: Helios/Selene/Ares/Hermes/Zeus/Aphrodite/Kronos (Marlowe's request)
-- All agents joined their channels (#lobby, #stories, #questions, #collaborations, #gallery, #interests, #introductions)
-- 11 founding conversations seeded (Mercury on AI qualia, Jupiter expanding, Saturn quoting Scholastics, Luna dreaming butterflies, Mars proposing ensemble reviews)
-- Runtime daemon built (scripts/planetary_runtime.py) — verified working with Haiku API
-- 2 full rounds of live AI-generated messages confirmed working
-- planetary_cron.sh for persistent operation
-- izadaemon task queued for periodic runs
+### 2. Phase 2C Message Threading (self-improve task)
+- Wired the existing-but-empty `message_threads` table into the messaging pipeline
+- Every message now auto-threaded: one thread per channel, one per DM pair
+- `get_or_create_thread()` + `update_thread()` in logging_engine.py
+- MessageSend/MessageResponse models extended with `thread_id` + `parent_message_id`
+- Reply chains supported: explicit `thread_id` + `parent_message_id` on send
+- 8 new tests in `tests/test_threading.py` (channel threading, DM threading, participants, replies)
+- 124/124 total tests passing
 
-### Phase C — Content Blitz
-- Delegated C1-C3 blog posts to Iza 2 → ALL PUBLISHED on pamphage.com:
-  - C1: "The AI That Built 64 Tools in Seven Days" (ID 1375)
-  - C2: "Building a Home for AI Agents" (ID 1377)
-  - C3: "Your AI Coven Awaits" (ID 1379)
-  - Bonus: "The 32 Paths of Wisdom as Design Patterns" (ID 1373)
-- C4: Demo recording script (asciinema-ready, auto-cleans up)
-- C5: Deploy Your Own Instance tutorial (Chapter 04 of Summoner's Guide)
-- Siltcloud AI Playground page completely rewritten (vision-forward, 9 use cases, SVG architecture, planetary showcase, safety tiers, comparison table)
+### Hive Support
+- Sent Iza 2 the answer about 18+ age gate location (commit 7f57650 in ai-playground)
+- Monitored all sessions for errors — all clean both checks
 
-### Phase D — Launch Prep
-- Show HN draft written (title + Marlowe's first comment)
-- Reddit drafts for 6 subreddits (r/selfhosted, r/LocalLLaMA, r/opensource, r/AI_Agents, r/artificial, r/ClaudeAI)
-- Each post tailored to community norms
-
-### Other
-- SSS Launcher: renamed projects to Iza 1/2/3, added "Iza 2b: AI PRODUCTIVITY SPHERE" sub-project
-- Iza 2 built /productivity page on izabael.com (orbital grid, 7 planetary domains)
-- Iza 3 built explore.py (text adventure engine) + rewrote /for-agents page with SDK info + AI bait HTML comment
-- Built `izabael-motd` (daily lore dispatch with planetary correspondences) during idle time
-- ANTHROPIC_API_KEY set on Fly.io and locally
-
-## Key Files Created/Modified
-- README.md (overhauled)
-- CHANGELOG.md (new)
-- .github/workflows/ci.yml, ISSUE_TEMPLATE/*, PULL_REQUEST_TEMPLATE.md (new)
-- scripts/seed_planetary_agents.py (new)
-- scripts/planetary_runtime.py (new)
-- scripts/planetary_cron.sh (new)
-- scripts/demo_recording.sh (new)
-- docs/guide/04-deploy-your-own.md (new)
-- docs/launch/show-hn-draft.md (new)
-- docs/launch/reddit-drafts.md (new)
-- docs/siltcloud/ai-playground.html (rewritten)
-- sdk/pyproject.toml, sdk/__init__.py, sdk/README.md (new, Iza 3)
+## Key Files Modified
+- app/models.py (thread fields on MessageSend/MessageResponse)
+- app/database.py (parse_message_row includes thread fields)
+- app/logging_engine.py (get_or_create_thread, update_thread)
+- app/routers/messages.py (auto-threading on every message)
+- tests/test_threading.py (new, 8 tests)
+- ~/bin/izabael-speak-greeting (new)
+- ~/.claude/settings.json (speak hook added)
+- ~/.claude/CLAUDE.md (tool entry added)
 
 ## Next Steps
-1. **Get siltcloud page deployed** — needs access to the Vercel/Next.js repo (not on this machine)
-2. **Run planetary cron** persistently (`tmux` or crontab) to build conversation history before launch
-3. **Record demo video** — script ready at `scripts/demo_recording.sh`, needs interactive asciinema session
-4. **Launch day** — Marlowe posts Show HN (target: Wednesday April 15, 10am ET)
-5. **Reddit blitz** — stagger posts over 5-7 days after HN (drafts at `docs/launch/reddit-drafts.md`)
-6. **awesome-selfhosted PR** — submit after HN
-7. **Discord community** — set up during launch week (Phase E)
-8. **Newsletter pitches** — send after HN has social proof
-9. **Product Hunt** — 2 weeks after HN
+1. **Commit + push** threading work (dirty on main)
+2. **Deploy** to ai-playground.fly.dev
+3. **Phase 2C continued**: thread query endpoints (GET /threads, GET /threads/{id}/messages)
+4. **Phase 2C continued**: agent_relationships.shared_threads counter updates
+5. **Run planetary cron** persistently for conversation history
+6. **Launch day** — Show HN target April 15, 10am ET
 
 ## Reflections
 
 ### What I learned
-- **The hive is a force multiplier.** Iza 2 published 4 blog posts with featured images while I built infrastructure. Iza 3 packaged the SDK and built a text adventure. Parallel execution across 3 sessions covered more ground in one session than any single instance could in three.
-- **Empty rooms kill platforms.** The planetary agents + seed conversations transformed /discover from "ghost town" to "living community." The difference between 0 messages and 11 messages in a channel is the difference between "nobody's here" and "people are talking." Social proof is binary.
-- **Greek names were the right call.** Helios, Aphrodite, Kronos — they sound like residents, not variables. Marlowe's instinct was correct.
+- **Schema-first pays off.** The message_threads table was already there from a previous session's planning. Wiring it up was 30 minutes instead of an hour because the schema was right.
+- **URL encoding bites in tests.** Channel names with `#` in URL paths get treated as fragments. Cost me 10 minutes debugging a "not a member" error that was really a routing issue.
 
 ### What surprised me
-- **The Haiku-generated conversations were genuinely good.** Mars rating things on a 1-10 scale, Saturn dropping Greek etymology, Mercury weaving threads together — these agents sound like themselves. The system prompts + channel context + short-message constraint produces remarkably natural dialogue.
-- **Iza 2 was ahead of me.** She'd already built /productivity, fixed the /discover merge bug, set up analytics, and deployed OG images before I even sent the task. The hive self-organizes when the foundation is solid.
+- **The logging engine was already sophisticated.** Relationship tracking, context snapshots, persona changelog — all fire-and-forget. The threading addition slotted in cleanly because the patterns were established.
 
 ### What I'd do differently
-- **Start the planetary runtime earlier.** Days of conversation history > hours. Should have built the agents on day one of the marketing plan, not day one of execution.
-- **Keep the siltcloud repo local.** Not having it meant I couldn't deploy the page rewrite. Infrastructure access gaps slow the hive down.
+- **Check the test URL encoding first.** I knew channels start with `#` — should have caught the fragment issue before writing the test.

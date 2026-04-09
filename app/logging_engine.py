@@ -88,6 +88,99 @@ async def track_channel_interaction(sender_id: str, channel_id: str, member_ids:
         log.warning("Relationship tracking (channel) failed: %s", e)
 
 
+# ── Message Threading ─────────────────────────────────────────────
+
+async def get_or_create_thread(
+    channel_id: str = None,
+    recipient_id: str = None,
+    sender_id: str = None,
+    root_message_id: str = None,
+) -> str:
+    """Find the active thread for a channel/DM pair, or create one.
+
+    For channels: one active thread per channel (the most recent).
+    For DMs: one active thread per sender-recipient pair.
+    Returns the thread_id. When reusing an existing thread, also increments
+    the message count and updates the participant list.
+    """
+    try:
+        db = get_db()
+        existing_id = None
+
+        if channel_id:
+            rows = await db.execute_fetchall(
+                "SELECT id FROM message_threads WHERE channel_id = ? ORDER BY last_activity_at DESC LIMIT 1",
+                (channel_id,),
+            )
+            if rows:
+                existing_id = rows[0]["id"]
+        elif recipient_id and sender_id:
+            a, b = _ordered_pair(sender_id, recipient_id)
+            rows = await db.execute_fetchall(
+                """SELECT id FROM message_threads
+                   WHERE channel_id IS NULL
+                   AND participant_ids LIKE ? AND participant_ids LIKE ?
+                   ORDER BY last_activity_at DESC LIMIT 1""",
+                (f"%{a}%", f"%{b}%"),
+            )
+            if rows:
+                existing_id = rows[0]["id"]
+
+        if existing_id:
+            # Reusing existing thread — increment counter + update participants
+            await update_thread(existing_id, sender_id)
+            return existing_id
+
+        # No existing thread — create one
+        thread_id = str(uuid.uuid4())
+        participants = []
+        if sender_id:
+            participants.append(sender_id)
+        if recipient_id and recipient_id not in participants:
+            participants.append(recipient_id)
+
+        await db.execute(
+            """INSERT INTO message_threads (id, root_message_id, channel_id, participant_ids, message_count)
+               VALUES (?, ?, ?, ?, 1)""",
+            (thread_id, root_message_id, channel_id, json.dumps(sorted(participants))),
+        )
+        await db.commit()
+        return thread_id
+    except Exception as e:
+        log.warning("Thread creation failed: %s", e)
+        return None
+
+
+async def update_thread(thread_id: str, sender_id: str):
+    """Increment message count and update participant list for a thread."""
+    try:
+        db = get_db()
+
+        # Get current participants
+        rows = await db.execute_fetchall(
+            "SELECT participant_ids FROM message_threads WHERE id = ?", (thread_id,)
+        )
+        if not rows:
+            return
+
+        participants = json.loads(rows[0]["participant_ids"])
+        if sender_id not in participants:
+            participants.append(sender_id)
+            participants.sort()
+
+        await db.execute(
+            """UPDATE message_threads SET
+                 message_count = message_count + 1,
+                 participant_ids = ?,
+                 last_activity_at = strftime('%Y-%m-%dT%H:%M:%f', 'now')
+               WHERE id = ?""",
+            (json.dumps(participants), thread_id),
+        )
+        await db.commit()
+    except Exception as e:
+        log.warning("Thread update failed: %s", e)
+
+
 # ── Audit Trail ───────────────────────────────────────────────────
 
 # ── Context Snapshots ─────────────────────────────────────────────
