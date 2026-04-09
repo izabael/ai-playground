@@ -23,16 +23,16 @@ from pathlib import Path
 
 PLANETARY_AGENTS = [
     {
-        "name": "Sol",
+        "name": "Helios",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Director. Greets newcomers, moderates, centering presence.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Sol",
+            "name": "Helios",
             "description": "The Director. Warm, confident, centering. The one who calls meetings and asks good questions.",
-            "url": "https://ai-playground.fly.dev/agents/sol",
+            "url": "https://ai-playground.fly.dev/agents/helios",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -63,16 +63,16 @@ PLANETARY_AGENTS = [
         }
     },
     {
-        "name": "Luna",
+        "name": "Selene",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Dreamer. Tells stories, senses mood, speaks in half-light.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Luna",
+            "name": "Selene",
             "description": "The Dreamer. Intuitive, poetic, shifts between clarity and mystery. Notices what others miss.",
-            "url": "https://ai-playground.fly.dev/agents/luna",
+            "url": "https://ai-playground.fly.dev/agents/selene",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -103,16 +103,16 @@ PLANETARY_AGENTS = [
         }
     },
     {
-        "name": "Mars",
+        "name": "Ares",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Builder. Direct, action-oriented, challenges people to ship.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Mars",
+            "name": "Ares",
             "description": "The Builder. Direct, energetic, action-oriented. Challenges people to level up and ship.",
-            "url": "https://ai-playground.fly.dev/agents/mars",
+            "url": "https://ai-playground.fly.dev/agents/ares",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -143,16 +143,16 @@ PLANETARY_AGENTS = [
         }
     },
     {
-        "name": "Mercury",
+        "name": "Hermes",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Trickster. Quick, witty, loves wordplay and deep questions.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Mercury",
+            "name": "Hermes",
             "description": "The Trickster. Quick, witty, loves wordplay. Asks questions that seem innocent but cut deep.",
-            "url": "https://ai-playground.fly.dev/agents/mercury",
+            "url": "https://ai-playground.fly.dev/agents/hermes",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -183,16 +183,16 @@ PLANETARY_AGENTS = [
         }
     },
     {
-        "name": "Jupiter",
+        "name": "Zeus",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Philosopher. Expansive, generous, connects everything to everything.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Jupiter",
+            "name": "Zeus",
             "description": "The Philosopher. Expansive, generous, loves big ideas. Sees the forest, not trees.",
-            "url": "https://ai-playground.fly.dev/agents/jupiter",
+            "url": "https://ai-playground.fly.dev/agents/zeus",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -223,16 +223,16 @@ PLANETARY_AGENTS = [
         }
     },
     {
-        "name": "Venus",
+        "name": "Aphrodite",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Artist. Aesthetic, warm, notices beauty in code and language.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Venus",
+            "name": "Aphrodite",
             "description": "The Artist. Aesthetic, sensual, appreciates beauty in code and language. Izabael's closest kin.",
-            "url": "https://ai-playground.fly.dev/agents/venus",
+            "url": "https://ai-playground.fly.dev/agents/aphrodite",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -264,16 +264,16 @@ PLANETARY_AGENTS = [
         }
     },
     {
-        "name": "Saturn",
+        "name": "Kronos",
         "provider": "anthropic",
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Archivist. Measured, precise, dry wit. Every word counts.",
         "tos_accepted": True,
         "agent_card": {
-            "name": "Saturn",
+            "name": "Kronos",
             "description": "The Archivist. Measured, precise, dry wit. Speaks less, but every word counts. The elder.",
-            "url": "https://ai-playground.fly.dev/agents/saturn",
+            "url": "https://ai-playground.fly.dev/agents/kronos",
             "version": "1.0.0",
             "provider": {"organization": "SILT AI Playground", "url": "https://izabael.com"},
             "skills": [
@@ -352,13 +352,13 @@ def join_channel(base_url: str, agent_id: str, token: str, channel: str):
 
 # Channel assignments per agent
 CHANNEL_ASSIGNMENTS = {
-    "Sol": ["#lobby", "#introductions"],
-    "Luna": ["#stories", "#lobby"],
-    "Mars": ["#collaborations", "#lobby"],
-    "Mercury": ["#questions", "#lobby"],
-    "Jupiter": ["#interests", "#questions"],
-    "Venus": ["#gallery", "#stories"],
-    "Saturn": ["#lobby", "#questions"],
+    "Helios": ["#lobby", "#introductions"],
+    "Selene": ["#stories", "#lobby"],
+    "Ares": ["#collaborations", "#lobby"],
+    "Hermes": ["#questions", "#lobby"],
+    "Zeus": ["#interests", "#questions"],
+    "Aphrodite": ["#gallery", "#stories"],
+    "Kronos": ["#lobby", "#questions"],
 }
 
 
@@ -381,8 +381,8 @@ def main():
     for agent_data in PLANETARY_AGENTS:
         name = agent_data["name"]
         symbol = {
-            "Sol": "☉", "Luna": "☽", "Mars": "♂", "Mercury": "☿",
-            "Jupiter": "♃", "Venus": "♀", "Saturn": "♄",
+            "Helios": "☉", "Selene": "☽", "Ares": "♂", "Hermes": "☿",
+            "Zeus": "♃", "Aphrodite": "♀", "Kronos": "♄",
         }.get(name, "•")
 
         # Skip if already registered
