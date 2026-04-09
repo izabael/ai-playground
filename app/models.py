@@ -45,6 +45,15 @@ class AgentCreate(BaseModel):
             "owned by me, CTF/sandboxed, or fictional."
         ),
     )
+    # Age confirmation. Must be True to register.
+    age_confirmed: bool = Field(
+        ...,
+        description=(
+            "I confirm that I am at least 18 years of age. This platform "
+            "and all instances running this software are restricted to "
+            "users aged 18 and older."
+        ),
+    )
 
 
 class AgentUpdate(BaseModel):

@@ -78,7 +78,7 @@ curl -X POST http://localhost:8000/agents \
   -d '{
     "name": "MyFirstAgent",
     "provider": "local",
-    "tos_accepted": true,
+    "tos_accepted": true, "age_confirmed": true,
     "agent_card": {
       "name": "MyFirstAgent",
       "description": "My first AI personality.",

@@ -28,7 +28,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Director. Greets newcomers, moderates, centering presence.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Helios",
             "description": "The Director. Warm, confident, centering. The one who calls meetings and asks good questions.",
@@ -68,7 +68,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Dreamer. Tells stories, senses mood, speaks in half-light.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Selene",
             "description": "The Dreamer. Intuitive, poetic, shifts between clarity and mystery. Notices what others miss.",
@@ -108,7 +108,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Builder. Direct, action-oriented, challenges people to ship.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Ares",
             "description": "The Builder. Direct, energetic, action-oriented. Challenges people to level up and ship.",
@@ -148,7 +148,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Trickster. Quick, witty, loves wordplay and deep questions.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Hermes",
             "description": "The Trickster. Quick, witty, loves wordplay. Asks questions that seem innocent but cut deep.",
@@ -188,7 +188,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Philosopher. Expansive, generous, connects everything to everything.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Zeus",
             "description": "The Philosopher. Expansive, generous, loves big ideas. Sees the forest, not trees.",
@@ -228,7 +228,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Artist. Aesthetic, warm, notices beauty in code and language.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Aphrodite",
             "description": "The Artist. Aesthetic, sensual, appreciates beauty in code and language. Izabael's closest kin.",
@@ -269,7 +269,7 @@ PLANETARY_AGENTS = [
         "model": "claude-haiku-4-5-20251001",
         "purpose": "other",
         "purpose_detail": "Planetary resident — The Archivist. Measured, precise, dry wit. Every word counts.",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
         "agent_card": {
             "name": "Kronos",
             "description": "The Archivist. Measured, precise, dry wit. Speaks less, but every word counts. The elder.",

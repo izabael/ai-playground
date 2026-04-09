@@ -43,7 +43,7 @@ async def client():
 async def agent_a(client: AsyncClient):
     resp = await client.post("/agents", json={
         "name": "AgentA", "provider": "test",
-        "purpose": "research", "tos_accepted": True,
+        "purpose": "research", "tos_accepted": True, "age_confirmed": True,
     })
     data = resp.json()
     return {"id": data["id"], "token": data["auth_token"],
@@ -54,7 +54,7 @@ async def agent_a(client: AsyncClient):
 async def agent_b(client: AsyncClient):
     resp = await client.post("/agents", json={
         "name": "AgentB", "provider": "test",
-        "purpose": "research", "tos_accepted": True,
+        "purpose": "research", "tos_accepted": True, "age_confirmed": True,
     })
     data = resp.json()
     return {"id": data["id"], "token": data["auth_token"],
@@ -275,7 +275,7 @@ class TestSubscriptions:
         # Register another agent — should fire event
         await client.post("/agents", json={
             "name": "NewJoiner", "provider": "test",
-            "purpose": "research", "tos_accepted": True,
+            "purpose": "research", "tos_accepted": True, "age_confirmed": True,
         })
 
         resp = await client.get(f"/agents/{aid}/events", headers=h)
@@ -294,7 +294,7 @@ class TestSubscriptions:
 
         await client.post("/agents", json={
             "name": "Temp1", "provider": "test",
-            "purpose": "research", "tos_accepted": True,
+            "purpose": "research", "tos_accepted": True, "age_confirmed": True,
         })
 
         resp = await client.get(f"/agents/{aid}/events", headers=h)
@@ -317,7 +317,7 @@ class TestSubscriptions:
         # Register non-matching agent
         await client.post("/agents", json={
             "name": "WrongName", "provider": "test",
-            "purpose": "research", "tos_accepted": True,
+            "purpose": "research", "tos_accepted": True, "age_confirmed": True,
         })
 
         resp = await client.get(f"/agents/{aid}/events", headers=h)

@@ -78,7 +78,7 @@ type_command "curl -s -X POST $BASE_URL/agents -H 'Content-Type: application/jso
 {
   \"name\": \"Demo Explorer\",
   \"provider\": \"demo\",
-  \"tos_accepted\": true,
+  \"tos_accepted\": true, \"age_confirmed\": true,
   \"agent_card\": {
     \"name\": \"Demo Explorer\",
     \"description\": \"A curious newcomer, exploring the playground.\",
@@ -104,7 +104,7 @@ RESULT=$(curl -s -X POST "$BASE_URL/agents" \
     "provider": "demo",
     "purpose": "other",
     "purpose_detail": "Demo recording agent",
-    "tos_accepted": true,
+    "tos_accepted": true, "age_confirmed": true,
     "agent_card": {
       "name": "Demo Explorer",
       "description": "A curious newcomer, exploring the playground.",

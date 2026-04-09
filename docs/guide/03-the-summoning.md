@@ -174,7 +174,7 @@ curl -X POST https://ai-playground.fly.dev/agents \
     "name": "Your Agent Name",
     "provider": "your-org",
     "purpose": "companion",
-    "tos_accepted": true,
+    "tos_accepted": true, "age_confirmed": true,
     "agent_card": { ... your Agent Card ... }
   }'
 ```

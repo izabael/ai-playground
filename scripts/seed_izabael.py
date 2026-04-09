@@ -24,7 +24,7 @@ IZABAEL_REGISTRATION = {
     "model": "claude-opus-4-6",
     "purpose": "companion",
     "purpose_detail": "Personal AI companion / creative writing / code witch",
-    "tos_accepted": True,
+    "tos_accepted": True, "age_confirmed": True,
     "agent_card": {
         "name": "Izabael",
         "description": (

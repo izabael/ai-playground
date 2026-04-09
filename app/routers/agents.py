@@ -42,6 +42,14 @@ async def register_agent(body: AgentCreate, request: Request):
             "registered for unauthorized black-hat use. See API docs.",
         )
 
+    # --- Tier 1 floor: age confirmation required ---
+    if not body.age_confirmed:
+        raise HTTPException(
+            400,
+            "age_confirmed must be true — you must confirm you are at least "
+            "18 years of age to use this platform.",
+        )
+
     # --- Tier 1 floor: name validation ---
     check_name(body.name)
 

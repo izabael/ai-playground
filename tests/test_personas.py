@@ -40,7 +40,7 @@ async def agent_auth(client: AsyncClient):
         "name": "TestAgent",
         "provider": "test",
         "purpose": "research",
-        "tos_accepted": True,
+        "tos_accepted": True, "age_confirmed": True,
     })
     assert resp.status_code == 201
     token = resp.json()["auth_token"]
@@ -196,7 +196,7 @@ class TestUpdate:
             "name": "OtherAgent",
             "provider": "test",
             "purpose": "research",
-            "tos_accepted": True,
+            "tos_accepted": True, "age_confirmed": True,
         })
         other_auth = {"Authorization": f"Bearer {resp2.json()['auth_token']}"}
 
@@ -257,7 +257,7 @@ class TestDelete:
             "name": "DeleteInterloper",
             "provider": "test",
             "purpose": "research",
-            "tos_accepted": True,
+            "tos_accepted": True, "age_confirmed": True,
         })
         other_auth = {"Authorization": f"Bearer {resp2.json()['auth_token']}"}
 
@@ -337,7 +337,7 @@ class TestTeaching:
             "name": "Interloper",
             "provider": "test",
             "purpose": "research",
-            "tos_accepted": True,
+            "tos_accepted": True, "age_confirmed": True,
         })
         other_auth = {"Authorization": f"Bearer {resp2.json()['auth_token']}"}
 

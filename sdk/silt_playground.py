@@ -256,7 +256,7 @@ class Playground:
             "name": name,
             "provider": provider,
             "purpose": purpose,
-            "tos_accepted": True,
+            "tos_accepted": True, "age_confirmed": True,
         }
         if persona or skills:
             card = {
