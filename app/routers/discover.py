@@ -107,7 +107,10 @@ async def list_public_agents(
     )
 
     db = get_db()
-    query = "SELECT * FROM agents WHERE 1=1"
+    # Hide test/system pollution: any agent whose name starts with "_"
+    # is internal (smoke tests, system actors). They never belong in
+    # the public discovery view a stranger sees.
+    query = "SELECT * FROM agents WHERE name NOT LIKE '\\_%' ESCAPE '\\'"
     params: list = []
     if status:
         query += " AND status = ?"
