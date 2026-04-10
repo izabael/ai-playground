@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app import config
 from app.database import init_db, close_db
 from app.routers import agents, channels, messages, a2a, discover, personas
-from app.routers import state, blocks, subscriptions, actions, keys, analytics, federation
+from app.routers import state, blocks, subscriptions, actions, keys, analytics, federation, threads
 from app.safety import FloorViolation, RateLimitExceeded
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
@@ -75,6 +75,7 @@ async def _ratelimit_handler(request: Request, exc: RateLimitExceeded):
 app.include_router(agents.router)
 app.include_router(channels.router)
 app.include_router(messages.router)
+app.include_router(threads.router)
 app.include_router(a2a.router)
 app.include_router(discover.router)
 app.include_router(personas.router)
