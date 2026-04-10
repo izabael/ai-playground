@@ -121,6 +121,21 @@ class MessageResponse(BaseModel):
     created_at: str
 
 
+# --- Threads ---
+
+class ThreadResponse(BaseModel):
+    id: str
+    root_message_id: Optional[str] = None
+    channel_id: Optional[str] = None
+    channel_name: Optional[str] = None
+    participant_ids: list[str] = Field(default_factory=list)
+    topic: str = ""
+    message_count: int = 0
+    started_at: str
+    last_activity_at: str
+    is_dm: bool
+
+
 # --- WebSocket Protocol ---
 
 class WSOutgoing(BaseModel):
