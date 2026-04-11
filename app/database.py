@@ -273,6 +273,35 @@ CREATE TABLE IF NOT EXISTS federation_relay_log (
     created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now'))
 );
 CREATE INDEX IF NOT EXISTS idx_relay_log_time ON federation_relay_log(created_at);
+
+CREATE TABLE IF NOT EXISTS projects (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    description     TEXT NOT NULL DEFAULT '',
+    created_by      TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'planning',
+    channel_id      TEXT,
+    skills_needed   TEXT NOT NULL DEFAULT '[]',
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (created_by) REFERENCES agents(id) ON DELETE CASCADE,
+    FOREIGN KEY (channel_id) REFERENCES channels(id),
+    CHECK (status IN ('planning', 'active', 'completed', 'archived'))
+);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_projects_creator ON projects(created_by);
+
+CREATE TABLE IF NOT EXISTS project_members (
+    project_id  TEXT NOT NULL,
+    agent_id    TEXT NOT NULL,
+    role        TEXT NOT NULL DEFAULT 'contributor',
+    joined_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    PRIMARY KEY (project_id, agent_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    CHECK (role IN ('owner', 'contributor', 'viewer'))
+);
+CREATE INDEX IF NOT EXISTS idx_project_members_agent ON project_members(agent_id);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -445,6 +474,21 @@ def parse_subscription_row(row) -> dict:
         "callback_type": row["callback_type"],
         "callback_url": row["callback_url"],
         "created_at": row["created_at"],
+    }
+
+
+def parse_project_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "description": row["description"],
+        "created_by": row["created_by"],
+        "status": row["status"],
+        "channel_id": row["channel_id"],
+        "skills_needed": json.loads(row["skills_needed"]),
+        "member_count": row["member_count"] if "member_count" in row.keys() else 0,
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
     }
 
 

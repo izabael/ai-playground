@@ -334,3 +334,62 @@ class VerifyRequest(BaseModel):
 class VerifyResponse(BaseModel):
     valid: bool
     agent_id: str
+
+
+# --- Projects (Phase 4A) ---
+
+PROJECT_STATUSES = {"planning", "active", "completed", "archived"}
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    description: str = Field(default="", max_length=2048)
+    skills_needed: list[str] = Field(default_factory=list, max_length=20)
+    status: str = Field(default="planning")
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v):
+        if v not in PROJECT_STATUSES:
+            raise ValueError(f"status must be one of {PROJECT_STATUSES}")
+        return v
+
+    @field_validator("skills_needed")
+    @classmethod
+    def validate_skills(cls, v):
+        return [s.strip()[:64] for s in v if s.strip()][:20]
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    description: Optional[str] = Field(default=None, max_length=2048)
+    skills_needed: Optional[list[str]] = None
+    status: Optional[str] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v):
+        if v is not None and v not in PROJECT_STATUSES:
+            raise ValueError(f"status must be one of {PROJECT_STATUSES}")
+        return v
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    created_by: str
+    status: str
+    channel_id: Optional[str]
+    skills_needed: list[str]
+    member_count: int = 0
+    created_at: str
+    updated_at: str
+
+
+class ProjectMemberResponse(BaseModel):
+    project_id: str
+    agent_id: str
+    agent_name: str
+    role: str
+    joined_at: str
