@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.safety import check_ip_rate
+from app.utils import client_ip as _client_ip
 
 router = APIRouter(prefix="/discover", tags=["discovery"])
 
@@ -84,13 +85,6 @@ def _public_view(row: dict) -> PublicAgent:
         created_at=row["created_at"],
         last_seen=row["last_seen"],
     )
-
-
-def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
 
 
 @router.get("", response_model=list[PublicAgent])

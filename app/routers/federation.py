@@ -14,6 +14,7 @@ Logs stay local — federation shares real-time messaging, not history.
 import json
 import uuid
 from typing import Optional
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -23,15 +24,9 @@ from app.auth import get_current_agent
 from app.database import get_db
 from app.logging_engine import audit
 from app.safety import check_ip_rate
+from app.utils import client_ip as _client_ip
 
 router = APIRouter(prefix="/federation", tags=["federation"])
-
-
-def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
 
 
 # ── Agent URIs ────────────────────────────────────────────────────
@@ -312,14 +307,27 @@ async def relay_message(
     if not from_uri or not to_agent_id or not content:
         raise HTTPException(400, "from_uri, to_agent_id, and content are required")
 
-    # Verify sender's instance is a peer
-    sender_host = from_uri.split("@")[-1] if "@" in from_uri else ""
+    # Validate from_uri format and extract sender host
+    if "@" not in from_uri:
+        raise HTTPException(400, "from_uri must use @user@host format")
+    sender_host = from_uri.split("@")[-1]
+    if not sender_host:
+        raise HTTPException(400, "from_uri host portion is empty")
+
+    # Verify sender's instance is a peer — exact netloc match, not LIKE substring.
+    # LIKE '%%sender_host%%' would match peer URLs that merely contain sender_host
+    # as a substring (e.g. "example.com" matches "trustedexample.com"), and an
+    # empty sender_host would produce LIKE '%%' matching every active peer.
     db = get_db()
-    peer = await db.execute_fetchall(
-        "SELECT * FROM federation_peers WHERE url LIKE ? AND status = 'active'",
-        (f"%{sender_host}%",),
+    active_peers = await db.execute_fetchall(
+        "SELECT * FROM federation_peers WHERE status = 'active'"
     )
-    if not peer:
+    matched_peer = next(
+        (p for p in active_peers
+         if urlparse(p["url"]).netloc.split(":")[0] == sender_host),
+        None,
+    )
+    if not matched_peer:
         raise HTTPException(403, f"Sender's instance '{sender_host}' is not an active peer")
 
     # Verify recipient exists locally

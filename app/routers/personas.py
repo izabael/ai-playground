@@ -35,15 +35,9 @@ from app.models import (
     TeachingExampleResponse,
 )
 from app.safety import check_content, check_ip_rate
+from app.utils import client_ip as _client_ip
 
 router = APIRouter(prefix="/personas", tags=["personas"])
-
-
-def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
 
 
 def _slugify(name: str) -> str:

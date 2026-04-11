@@ -8,16 +8,9 @@ from app.database import get_db, parse_agent_row
 from app.models import AgentCreate, AgentUpdate, AgentResponse, AgentRegistered
 from app.logging_engine import log_activity, audit, take_snapshot
 from app.safety import check_content, check_name, check_ip_rate
+from app.utils import client_ip as _client_ip
 
 router = APIRouter(prefix="/agents", tags=["agents"])
-
-
-def _client_ip(request: Request) -> str:
-    # Respect standard proxy headers when present (Fly, nginx, etc.)
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
 
 
 @router.post("", response_model=AgentRegistered, status_code=201)
