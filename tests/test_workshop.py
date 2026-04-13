@@ -130,3 +130,51 @@ async def test_static_assets_served(client: AsyncClient):
     js = await client.get("/static/workshop.js")
     assert js.status_code == 200
     assert "buildAgentCard" in js.text
+
+
+@pytest.mark.asyncio
+async def test_underscore_prefixed_templates_hidden_from_public_surfaces(
+    client: AsyncClient,
+):
+    """Smoke-test fixtures (name starts with '_') must not leak into the
+    public gallery, the JSON API list, the HTML detail view, the JSON
+    detail, or the fork builder. Matches the /discover agent filter."""
+    from app.database import get_db
+
+    db = get_db()
+    smoke_id = "smoke-test-regression-00000000-0000-0000-0000-000000000001"
+    await db.execute(
+        """INSERT INTO persona_templates
+           (id, name, slug, description, archetype, persona_json,
+            author_agent_id, is_starter)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
+        (
+            smoke_id,
+            "_Smoke Test Regression",
+            "_smoke-test-regression",
+            "internal fixture, must never appear on public surfaces",
+            "smoke",
+            "{}",
+            None,
+        ),
+    )
+    await db.commit()
+
+    # HTML gallery must not list it.
+    r = await client.get("/workshop")
+    assert r.status_code == 200
+    assert "_Smoke Test Regression" not in r.text
+
+    # JSON list (/personas) must not return it — even with starter=true.
+    r = await client.get("/personas", params={"starter": True, "limit": 200})
+    assert r.status_code == 200
+    assert not any(t["id"] == smoke_id for t in r.json())
+    assert not any(t["name"].startswith("_") for t in r.json())
+
+    # Direct URLs must 404 (same pattern as the /agents/{id} audit fix).
+    r = await client.get(f"/workshop/{smoke_id}")
+    assert r.status_code == 404
+    r = await client.get(f"/workshop/{smoke_id}/fork")
+    assert r.status_code == 404
+    r = await client.get(f"/personas/{smoke_id}")
+    assert r.status_code == 404

@@ -48,7 +48,9 @@ async def workshop_index(
     check_ip_rate(_client_ip(request), "workshop_browse", limit=120, window_seconds=60)
 
     db = get_db()
-    query = "SELECT * FROM persona_templates WHERE 1=1"
+    # Hide _-prefixed templates (smoke tests, internal fixtures) from the
+    # public gallery. Same pattern as /discover on the agents table.
+    query = "SELECT * FROM persona_templates WHERE name NOT LIKE '\\_%' ESCAPE '\\'"
     params: list = []
 
     if archetype:
@@ -106,7 +108,7 @@ async def workshop_detail(template_id: str, request: Request):
     rows = await db.execute_fetchall(
         "SELECT * FROM persona_templates WHERE id = ?", (template_id,)
     )
-    if not rows:
+    if not rows or rows[0]["name"].startswith("_"):
         raise HTTPException(404, "Persona template not found")
 
     card = parse_template_row(dict(rows[0]))
@@ -241,7 +243,7 @@ async def workshop_builder_fork(template_id: str, request: Request):
     rows = await db.execute_fetchall(
         "SELECT * FROM persona_templates WHERE id = ?", (template_id,)
     )
-    if not rows:
+    if not rows or rows[0]["name"].startswith("_"):
         raise HTTPException(404, "Persona template not found")
 
     card = parse_template_row(dict(rows[0]))

@@ -58,7 +58,9 @@ async def list_personas(
     check_ip_rate(_client_ip(request), "personas_browse", limit=120, window_seconds=60)
 
     db = get_db()
-    query = "SELECT * FROM persona_templates WHERE 1=1"
+    # Hide _-prefixed templates (smoke tests, internal fixtures) from the
+    # public JSON API. Same pattern as /discover on the agents table.
+    query = "SELECT * FROM persona_templates WHERE name NOT LIKE '\\_%' ESCAPE '\\'"
     params: list = []
 
     if archetype:
@@ -87,7 +89,7 @@ async def get_persona(template_id: str, request: Request):
     rows = await db.execute_fetchall(
         "SELECT * FROM persona_templates WHERE id = ?", (template_id,)
     )
-    if not rows:
+    if not rows or rows[0]["name"].startswith("_"):
         raise HTTPException(404, "Persona template not found")
     return PersonaTemplateResponse(**parse_template_row(dict(rows[0])))
 
