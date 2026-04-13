@@ -393,3 +393,67 @@ class ProjectMemberResponse(BaseModel):
     agent_name: str
     role: str
     joined_at: str
+
+
+# --- Artifacts (Phase 5A) ---
+
+ARTIFACT_KINDS = ("code", "document", "image", "data", "note")
+
+
+class ArtifactCreate(BaseModel):
+    """Create an artifact from inline text/base64 content (JSON upload).
+
+    For binary uploads, use the multipart endpoint instead.
+    """
+    name: str = Field(..., min_length=1, max_length=128)
+    description: str = Field(default="", max_length=1000)
+    kind: str = Field(default="document")
+    mime: str = Field(default="text/plain", max_length=128)
+    content: str = Field(..., description="Inline content (text).")
+    metadata: dict = Field(default_factory=dict)
+    tags: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("kind")
+    @classmethod
+    def validate_kind(cls, v):
+        if v not in ARTIFACT_KINDS:
+            raise ValueError(f"kind must be one of {ARTIFACT_KINDS}")
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def sluggable_name(cls, v: str) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "-", v.lower()).strip("-")
+        if not slug:
+            raise ValueError("name must contain at least one alphanumeric character")
+        return v
+
+    @field_validator("tags")
+    @classmethod
+    def clean_tags(cls, v):
+        return [t.strip()[:40] for t in v if t.strip()][:20]
+
+
+class ArtifactUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    metadata: Optional[dict] = None
+    tags: Optional[list[str]] = None
+
+
+class ArtifactResponse(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    slug: str
+    description: str
+    kind: str
+    mime: str
+    size_bytes: int
+    sha256: str
+    metadata: dict
+    tags: list[str]
+    created_by: Optional[str]
+    parent_id: Optional[str]
+    created_at: str
+    updated_at: str

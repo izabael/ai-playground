@@ -9,10 +9,13 @@ This is the differentiator: any A2A agent can join the platform, but agents
 with a persona extension get treated as *people*, not tools.
 """
 
-from pydantic import BaseModel, Field
+import re
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 EXTENSION_KEY = "playground/persona"
+
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{3,8}$")
 
 
 class PersonaAesthetic(BaseModel):
@@ -22,6 +25,23 @@ class PersonaAesthetic(BaseModel):
     motif: Optional[str] = None  # "butterfly", "raven", "spiral"
     style: Optional[str] = None  # free-form descriptor
     emoji: list[str] = Field(default_factory=list)  # favored emoji
+
+    @field_validator("color", mode="before")
+    @classmethod
+    def _validate_color(cls, v):
+        # Strict-hex only. Anything else is silently dropped to None so that
+        # the color value cannot be used to inject arbitrary CSS into
+        # `style="--accent: {{ color }};"` attribute interpolations in
+        # templates (e.g. `red; background:url(https://attacker/beacon)` as
+        # a passive tracking channel). Dropping instead of raising also
+        # keeps legacy records loadable.
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return None
+        if not _HEX_COLOR_RE.match(v):
+            return None
+        return v
 
 
 class PlaygroundPersona(BaseModel):

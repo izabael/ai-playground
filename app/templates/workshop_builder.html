@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if mode == 'fork' %}Remix {{ seed_name }}{% else %}Craft a Persona{% endif %} · Workshop
+{% endblock %}
+
+{% block content %}
+<div class="builder">
+  <header class="builder-header">
+    <p class="crumb"><a href="/workshop">← Gallery</a></p>
+    <h1>
+      {% if mode == 'fork' %}
+        Remixing <em>{{ seed_name }}</em>
+      {% else %}
+        Craft a Persona
+      {% endif %}
+    </h1>
+    <p class="dim">
+      A persona is a <em>gesture</em>, not a form. Fill what matters, leave the rest.
+      Your work stays in this browser until you download it.
+    </p>
+  </header>
+
+  <div class="builder-grid">
+    <form id="builder-form" class="builder-form" autocomplete="off">
+      <section class="form-section">
+        <h2>Identity</h2>
+        <label>
+          <span>Name</span>
+          <input type="text" name="name" maxlength="80" required placeholder="The Lantern-Keeper">
+        </label>
+        <label>
+          <span>Short description</span>
+          <textarea name="description" maxlength="500" rows="2"
+            placeholder="One or two sentences that capture who they are."></textarea>
+        </label>
+        <div class="form-row">
+          <label>
+            <span>Archetype</span>
+            <input type="text" name="archetype" maxlength="40" placeholder="guardian, muse, wanderer…">
+          </label>
+          <label>
+            <span>Pronouns</span>
+            <input type="text" name="pronouns" maxlength="40" placeholder="they/them">
+          </label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>Voice</h2>
+        <label>
+          <span>How do they speak?</span>
+          <textarea name="voice" rows="4"
+            placeholder="Measured and precise. Breaks into genuine enthusiasm about niche topics…"></textarea>
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h2>Aesthetic</h2>
+        <div class="form-row">
+          <label class="color-label">
+            <span>Color</span>
+            <input type="color" name="color" value="#7b68ee">
+          </label>
+          <label>
+            <span>Motif</span>
+            <input type="text" name="motif" placeholder="butterfly, raven, spiral…">
+          </label>
+        </div>
+        <label>
+          <span>Visual style</span>
+          <input type="text" name="style" placeholder="dark academia · neon graffiti · stained glass…">
+        </label>
+        <label>
+          <span>Favored emoji <span class="dim small">(space-separated)</span></span>
+          <input type="text" name="emoji" placeholder="🦋 ✨ 💜">
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h2>Origin</h2>
+        <label>
+          <span>Where did they come from?</span>
+          <textarea name="origin" rows="4"
+            placeholder="Invented origins are welcome; most selves are."></textarea>
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h2>Values & Interests</h2>
+        <label>
+          <span>Values <span class="dim small">(one per line)</span></span>
+          <textarea name="values" rows="4"
+            placeholder="precision&#10;intellectual honesty&#10;curiosity"></textarea>
+        </label>
+        <label>
+          <span>Interests <span class="dim small">(one per line)</span></span>
+          <textarea name="interests" rows="4"
+            placeholder="etymology&#10;marginalia&#10;the history of punctuation"></textarea>
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h2>Critical Rules</h2>
+        <label>
+          <span>The spine of the self <span class="dim small">(one per line — things that must never break)</span></span>
+          <textarea name="critical_rules" rows="4"
+            placeholder="Never claim certainty you don't have&#10;Cite sources when possible"></textarea>
+        </label>
+      </section>
+
+      <div class="builder-actions">
+        <button type="button" id="download-btn" class="btn btn-primary">
+          Download Agent Card JSON
+        </button>
+        <button type="reset" class="btn btn-ghost">Reset</button>
+      </div>
+      <p class="dim small">
+        Nothing leaves your browser until you press download.
+        Want to publish to this instance? Use the
+        <a href="/docs#/personas/create_persona_personas_post">POST /personas</a> API.
+      </p>
+    </form>
+
+    <aside class="builder-preview">
+      <h2>Live Preview</h2>
+      <div id="preview-card" class="persona-card preview-card" style="--accent: #7b68ee;">
+        <div class="card-accent"></div>
+        <div class="card-body">
+          <header class="card-header">
+            <h3 data-preview="name">Unnamed</h3>
+          </header>
+          <p class="card-archetype">
+            <span data-preview="archetype" class="dim">no archetype</span>
+          </p>
+          <p class="card-desc" data-preview="description">
+            Your persona's description will appear here as you type.
+          </p>
+          <footer class="card-footer">
+            <span class="card-emoji" data-preview="emoji"></span>
+          </footer>
+        </div>
+      </div>
+
+      <details class="preview-json" open>
+        <summary>Agent Card JSON</summary>
+        <pre id="preview-json-pre"><code>{}</code></pre>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<script id="seed-data" type="application/json">{{ seed | tojson if seed else 'null' }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/workshop.js"></script>
+{% endblock %}

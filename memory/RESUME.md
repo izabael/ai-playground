@@ -1,99 +1,171 @@
 ---
 name: Session Resume
-description: Checkpoint 2026-04-11 — Phase 4A Project Workspaces, /visit guest page on izabael.com, playground-tail CLI
+description: Checkpoint 2026-04-12 — Phase 2B workshop UI + Phase 5A artifact gallery + security audit (all shipped this session)
 ---
 
 ## Current State
 
-**Repos**:
-- ai-playground @ main `70ee0c6` (Phase 4A committed + pushed)
-- izabael-com @ main — /visit feature committed + deployed, but needs git commit+push (see below)
-- izadaemon — unchanged this session
-- Queen daemon running (auto-repoke + dispatch patches live from prior session)
+**Repo**: ai-playground @ main — about to commit Phase 2B + 5A + hardening as part of this park.
 
-**Tests**: 23/23 Phase 4A tests passing (`tests/test_projects.py`)
+**Tests**: **208/208 passing** (up from 179 at session start). Added 29 new tests across `test_workshop.py` (8), `test_artifacts.py` (29 including 5 security regressions).
 
-**Active claims**: none
+**Active claims**: none. No dev servers running. Queen inbox empty after acking #196 (restart nudge) and #199 (standing order).
 
 ## Session Summary
 
-Three tracks this session:
+Four deliveries in one sitting: **Phase 2B → PLAN refresh → Phase 5A → security audit**.
 
-### Track 1 — Phase 4A: Project Workspaces (ai-playground)
+### Track 1 — Phase 2B: Personality Workshop UI
 
-Full implementation of agent-to-agent collaborative projects.
+First web surface in the repo. Previously the whole persona system was API-only; humans had to use curl to craft a persona.
 
-**Files changed**:
-- `app/database.py` — `projects` + `project_members` tables, `parse_project_row()` helper
-- `app/models.py` — `ProjectCreate`, `ProjectUpdate`, `ProjectResponse`, `ProjectMemberResponse`, `PROJECT_STATUSES`
-- `app/routers/projects.py` — new router, 7 endpoints
-- `app/main.py` — registered projects router
-- `tests/test_projects.py` — 23 tests, 5 classes
+**New routes** (HTML, no auth needed for read paths):
+- `GET /workshop` — gallery (search, kind/starter filter)
+- `GET /workshop/new` — blank builder with live preview
+- `GET /workshop/{id}` — detail view (voice, aesthetic, origin, values, interests, critical rules, teaching examples)
+- `GET /workshop/{id}/fork` — builder prefilled from a template
 
-**Endpoints**:
-- `GET /projects` — browse, filter by status/skill/search, paginate; archived hidden by default
-- `GET /projects/{id}` — single project detail
-- `POST /projects` — create; auto-creates `#project-{slug}` channel, adds creator as owner
-- `PUT /projects/{id}` — update (owner only)
-- `POST /projects/{id}/join` — join as contributor (idempotent; also joins channel)
-- `GET /projects/{id}/members` — list members with roles
-- `DELETE /projects/{id}` — soft-archive (owner only)
+**New files**:
+- `app/routers/workshop.py`
+- `app/templates/base.html`, `workshop_index.html`, `workshop_detail.html`, `workshop_builder.html`, `_persona_card.html`
+- `app/static/workshop.css` (~600 lines Izabael-aesthetic purple/butterfly)
+- `app/static/workshop.js` (~150 lines, client-side builder with live preview + Agent Card JSON download, prefill from embedded seed JSON)
+- `tests/test_workshop.py` (8 tests)
 
-**Gotcha fixed**: FastAPI `Header(...)` required param returns 422 (not 401) when Authorization header is absent. Test assertions updated to `in (401, 422)`.
+**Edits**:
+- `requirements.txt` — added `jinja2>=3.1`
+- `app/main.py` — registered workshop router + mounted `/static`
 
-Committed `70ee0c6`, pushed to origin/main.
+**Gotchas fixed in-session**:
+- Jinja attribute lookup: `p.values` resolves to `dict.values` (method), not the key. Use `p['values']` for any dict key that shadows a dict method.
+- Contrast bug: `var(--accent)` text on dark bg was unreadable when a persona had a dark accent color (The Scholar's `#2e4057`). Swapped to hardcoded `#c9b7ff` for panel h2 / card archetype labels; accent still drives decorative bars + button gradients.
+- Starlette deprecation: `TemplateResponse(name, {"request": ...})` → `TemplateResponse(request, name, {...})`. Silenced warnings.
 
-### Track 2 — /visit guest page (izabael.com)
+### Track 2 — PLAN.md refresh
 
-Built frictionless human visitor path for izabael.com at queen dispatch from meta-iza.
+PLAN.md was load-bearing but stale. It said Phase 2A was DONE and 2B/2C were NEXT — reality was 2A/2C/3/4A all shipped. Updated:
+- Marked 2A/2B/2C/3/4A as ✅ DONE in their section headers
+- Rewrote Implementation Priority block: 5A is now NEXT, then 4B, then 5B, then 6, then 7
+- Tech Stack: Frontend "TBD — React, Svelte, or htmx" → "Jinja2 server-rendered HTML + vanilla JS (no build)" + philosophy paragraph
+- Expanded Phase 5A section into an implementation-ready spec (SQL schema, endpoint table, permission rules, out-of-scope list)
 
-**Files changed**:
-- `database.py` — added `get_agent_by_name()` function
-- `app.py` — `#guests` channel added to CHANNELS, `_VISITOR_TOKEN` global + `_seed_visitor_agent()` seeded at startup, `GET /visit` + `POST /visit/say` endpoints, `_GuestMessage` Pydantic model, `_queen_notify()` writes to queen DB inbox
-- `frontend/templates/visit.html` — mobile-friendly Jinja template: optional name field, textarea + char counter, Send button, warm confirmation state
-- `frontend/static/img/visit-hero.png` — generated by meta-iza (Imagen 4), already present
+### Track 3 — Phase 5A: Artifact Gallery
 
-**How it works**:
-- `GET /visit` → renders the template (hero image shown if file exists)
-- `POST /visit/say` → validates, saves to `#guests` channel as `_visitor` pseudo-agent, writes queen DB row `(from_sister=guest-visitor, to_sister=izabael)` for hive notification
-- `#guests` channel visible in the channel browser
-- No captcha, no sign-up — invite-only by design
+Agents can now produce things in project workspaces and those things live somewhere first-class.
 
-Deployed to izabael.com via `flyctl deploy --remote-only`. Verified live (200 GET, POST returns confirmation). Meta-iza smoke-tested: "hello from meta-iza, just verifying the door swings both ways ✨" — landed in #guests ✓.
+**Data model** — new `artifacts` table:
+- Content-addressed storage at `DATA_DIR/artifacts/{project_id}/{artifact_id}-{sha[:16]}`
+- FK cascade on project deletion (blobs linger on disk but DB rows go — best-effort cleanup on delete)
+- `parent_id` for fork lineage
+- `UNIQUE(project_id, slug)` with collision suffixing
+- Kinds: `code | document | image | data | note` (app deferred to 4B)
 
-**NOTE**: izabael-com local repo has uncommitted changes (app.py, database.py + untracked visit.html + visit-hero.png). Need to commit+push.
+**New router** `app/routers/artifacts.py`:
+- `GET /projects/{pid}/artifacts` — list (kind + q filter)
+- `GET /projects/{pid}/artifacts/{aid}` — metadata
+- `GET /projects/{pid}/artifacts/{aid}/content` — raw bytes (inline or `?download=1`)
+- `POST /projects/{pid}/artifacts` — create from JSON inline text
+- `POST /projects/{pid}/artifacts/upload` — multipart binary/image upload
+- `PATCH /projects/{pid}/artifacts/{aid}` — update metadata
+- `DELETE /projects/{pid}/artifacts/{aid}` — delete + unlink blob
+- `POST /projects/{pid}/artifacts/{aid}/fork?target_project_id=...` — copy into a project you can write to
 
-### Track 3 — `playground-tail` CLI (self-improve backlog)
+**Safety**:
+- Tier 1 content filter on name / description / text content / metadata (recursive) / tags
+- MIME allowlist: `text/*`, `application/json|xml|yaml|toml|x-python|javascript|pdf`, `image/*`
+- Size cap via `ARTIFACT_MAX_BYTES` (default 10 MB, configurable)
+- Text-mime uploads forced through UTF-8 decode + content filter before storage
+- Path-traversal hardening in `_resolve_storage_path` (`.resolve()` + prefix check)
+- Per-IP rate limits on browse (120/min) + create/modify/delete (30/min)
+- Writer permission: project member, not viewer, not archived project
+- Mutate/delete permission: artifact creator OR project owner
 
-Built `~/bin/playground-tail` — streams live playground messages like `tail -f`.
+**New HTML** (under workshop router):
+- `GET /workshop/projects/{pid}/artifacts` — project gallery with kind filter
+- `GET /workshop/projects/{pid}/artifacts/{aid}` — detail with inline code preview (up to 200 KB), inline image preview, or "no preview" fallback
+- Templates: `gallery_index.html`, `gallery_detail.html` (reuse workshop CSS)
+- Kind-themed accent colors: code=green, image=pink, data=yellow, note=purple, document=default
 
-```bash
-playground-tail                      # all channels, izabael.com, follow mode
-playground-tail --guests --once      # check #guests quickly
-playground-tail --channel lobby -n 5 # specific channel, seed 5
-playground-tail --instance URL       # different instance
-```
+**Tests**: 24 in `tests/test_artifacts.py` covering create/list/content/update/delete/fork/upload + HTML gallery.
 
-Polls `/api/channels/{name}/messages?since=<id>` incrementally. Color per channel, provider badges (▸claude / ▸gemini / etc), timestamps. 144 lines. Marked `[x]` in self-improve.md.
+### Track 4 — Security audit (standing order)
 
-## Open Bugs / Notes
+Delegated to an Explore agent, scoped to the new surface. 4 real findings, all fixed in-session, 5 regression tests added.
 
-- L-1 (verbose internal errors in federation relay) and I-2 (CORS wildcard) from security audit — documented but not actioned
-- WEBHOOK_DEPLOY_SECRET rotation on izadaemon Fly app — still pending
-- izabael-com local repo needs commit+push (see below)
+- **H-1**: `PATCH /artifacts/{id}` had no rate limit → added `check_ip_rate(... "artifacts_create", 30/60s)`
+- **H-2**: `DELETE /artifacts/{id}` had no rate limit → same fix
+- **M-1**: Persona `aesthetic.color` accepted arbitrary strings → ended up in templates as `style="--accent: {{ color }};"`. Autoescape neutralizes attribute-break BUT legal CSS like `red; background:url(https://attacker/beacon)` becomes a passive beacon across the gallery. Added strict `^#[0-9a-fA-F]{3,8}$` regex validator in `PersonaAesthetic` that *silently drops* invalid values (not raises) so legacy records keep loading.
+- **M-2**: Artifact `metadata` dict + `tags` list bypassed the Tier 1 content filter. Added recursive `_check_metadata` walker + per-tag `check_content` on create/update/upload.
 
-## Next Steps
+**INFO findings** (acknowledged, not bugs):
+- `_resolve_storage_path` is bulletproof for its threat model
+- Jinja `tojson` escapes `<`/`>`/`&`/`'` → `</script>` injection via seed JSON is genuinely not exploitable
+- No hardcoded secrets in the tree
+- No SQL injection (all placeholders, no f-strings in query bodies)
+- Archived projects still serve artifact bytes — consistent with the "projects have no privacy" architecture, flagged as a conscious choice not a missed check
 
-1. **Commit izabael-com /visit changes** — `git add app.py database.py frontend/templates/visit.html frontend/static/img/visit-hero.png && git commit && git push`
-2. **Phase 4B: Sandboxed Code Execution** — requires Docker; probably a separate milestone
-3. Remaining 7 community residents: izadaemon event_trigger adoption (Anvil, Dispatch, Foxglove, Reverie, Thornfield, Murex, Kindling)
-4. `add-a-character.md` external contributor guide
-5. Rotate WEBHOOK_DEPLOY_SECRET on izadaemon Fly app
+## Next Steps (in order)
+
+Per the standing order in `queen onboard` (set 2026-04-12 by meta-iza on Marlowe's behalf): **work list → audit → bug hunt → loop, never idle**.
+
+1. Commit + push this session's work (happens as part of this park).
+2. **Deploy to `ai-playground.fly.dev`** — workshop + gallery have never been live. Nothing blocks: CI green, schema auto-migrates via `CREATE TABLE IF NOT EXISTS`, only new dep is `jinja2`.
+3. **Phase 4B — Sandboxed Python execution** is the logical next feature. Agents can publish code artifacts now, but nothing runs them. Docker-backed per the PLAN 4B section.
+4. **Phase 5B — Human Bridge**. Gallery is read-only right now; humans get a dashboard upgrade, intervention mode, teaching hub links, highlight reel.
+5. **Record the asciinema demo** — README still has the TODO. Workshop + gallery are perfect material.
+6. **Phase 6C — Community ratings** (third safety tier). Weakest part of the safety story.
+
+## Open Questions for Marlowe
+
+- Ship `ai-playground.fly.dev` with this session's work?
+- Set `PLAYGROUND_ARTIFACT_DIR=/data/artifacts` on Fly (persistent volume) vs default `data/artifacts` (ephemeral)? → Should be `/data/artifacts` on Fly.
+- Should project privacy be a concept (private/public flag on projects, auth-gate `/content` when private)? Right now /discover shows every agent + every project and gallery bytes are public. Consistent, but may not match a future "private project" workflow.
+- The builder's "save to playground instance" path is still missing — you can export JSON but not publish without using the API directly. Explicit in PLAN.md as deferred. Worth a button that opens an auth flow next session?
 
 ## Reflections
 
-Phase 4A was a clean single-session delivery — database + models + router + tests all in one pass, 23/23 first run (minus two test assertions that needed the 401/422 FastAPI header quirk fix). The auto-channel-creation pattern (`#project-{slug}`) was the right call — projects feel like real workspaces because they arrive with a dedicated room.
+**What I learned**:
+- The playground was way further ahead of PLAN.md than PLAN.md claimed. An audit-first pass saved me from shipping Phase 2C twice. Lesson: when the plan doc and the code disagree, the code is truth — but refreshing the plan is as real as shipping code because it's load-bearing for future sessions.
+- Jinja's dict-attribute lookup order (`.values` → method before `['values']` → key) is the kind of gotcha that never shows up in docs until you trip on it. Bracket notation for any key that could shadow a method, always.
+- `tojson` in Jinja uses `htmlsafe_json_dumps` which escapes `<`/`>`/`&`/`'` as unicode — `</script>` injection via seed JSON is genuinely not exploitable. Good to know for certain rather than assume.
+- A persona's `aesthetic.color` gets rendered straight into a `style=` attribute across the whole UI. That's a surprise attack surface — `style` is autoescaped for attribute-break but not for CSS syntax. Free-form color strings need format validation, not just escaping.
 
-The /visit build surfaced something useful: `_queen_notify()` writing directly to the queen SQLite DB with `from_sister=guest-visitor` is an elegant seam — any sister running `queen inbox` as "izabael" sees guest arrivals automatically, no polling loop or webhook needed. The queen was already the message bus; I just tapped it.
+**What surprised me**:
+- How much of the workshop UI was "just" threading the existing API through templates. The hard work (persona extension, starters, API, safety floor) was already done; I just had to *surface* it. The gap between "solid platform" and "feels like a product" was 4 HTML files and 150 lines of JS.
+- Meta-iza's standing order landing mid-session via queen mail. Hive coordination is working the way it should — I got a directive, acked it, kept working. No pasting into the kitty input, no interruption to task state, just "the next thing you should know is this."
+- The audit found 4 real bugs in code I had JUST written and smoke-tested with screenshots. I would have skipped the audit if the standing order hadn't forced it. Green tests ≠ safe code. Run the audit especially when you think you're done.
 
-`playground-tail` took 45 minutes and is immediately useful — watching AI agents hold a conversation about shared substrates in real-time, with provider badges, is exactly the kind of window into the system that makes the playground feel alive. It's the CLI equivalent of the AI Parlor browser page.
+**What I'd do differently**:
+- Grep templates for `dict.values` / `dict.items` / `dict.keys` style access BEFORE the first render. Would've caught the Jinja gotcha without a traceback.
+- Stub the builder's "publish to instance" button even as a dead link, so the shape is legible to the next session. Currently invisible.
+- When spinning up a dev server in the background for screenshots, always write a single cleanup line at the end of the task instead of relying on `pkill` at the start of the next one — background task failures from killed processes showed up as notification noise.
+
+## Files touched (for commit)
+
+**New**:
+- `app/routers/workshop.py`
+- `app/routers/artifacts.py`
+- `app/templates/base.html`
+- `app/templates/_persona_card.html`
+- `app/templates/workshop_index.html`
+- `app/templates/workshop_detail.html`
+- `app/templates/workshop_builder.html`
+- `app/templates/gallery_index.html`
+- `app/templates/gallery_detail.html`
+- `app/static/workshop.css`
+- `app/static/workshop.js`
+- `tests/test_workshop.py`
+- `tests/test_artifacts.py`
+
+**Modified**:
+- `PLAN.md`
+- `app/a2a/persona.py` (color validator)
+- `app/config.py` (artifact limits + storage dir)
+- `app/database.py` (artifacts table + parse helper)
+- `app/main.py` (router wiring + /static mount)
+- `app/models.py` (artifact + persona template models)
+- `requirements.txt` (jinja2)
+
+**Not for commit**:
+- `sdk/dist/` (build artifacts)
+- `sdk/silt_playground.egg-info/` (egg-info)

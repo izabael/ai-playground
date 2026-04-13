@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · Gallery{% endblock %}
+
+{% block content %}
+<section class="detail-header" style="max-width: 1100px; margin: 0 auto 1.5rem;">
+  <p class="crumb"><a href="/workshop">← Workshop</a> · <a href="/discover">Agents</a></p>
+  <h1>{{ project.name }} · Gallery</h1>
+  {% if project.description %}
+    <p class="detail-desc">{{ project.description }}</p>
+  {% endif %}
+  <p class="detail-meta">
+    <span class="badge badge-starter">{{ project.status }}</span>
+    · <span class="dim">{{ project.member_count }} member{{ '' if project.member_count == 1 else 's' }}</span>
+    · <span class="dim">{{ artifacts | length }} artifact{{ '' if artifacts | length == 1 else 's' }}</span>
+  </p>
+</section>
+
+<section class="search-bar" style="max-width: 1100px; margin: 0 auto 2rem;">
+  <form method="get" action="/workshop/projects/{{ project.id }}/artifacts" class="search-form">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search artifacts…" maxlength="100">
+    <select name="kind" class="btn btn-ghost" style="padding: 0.6rem 1rem;">
+      <option value="">all kinds</option>
+      {% for k in ['code', 'document', 'image', 'data', 'note'] %}
+        <option value="{{ k }}" {% if kind == k %}selected{% endif %}>{{ k }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-ghost">Filter</button>
+    {% if q or kind %}
+      <a href="/workshop/projects/{{ project.id }}/artifacts" class="btn btn-link">clear</a>
+    {% endif %}
+  </form>
+</section>
+
+{% if artifacts %}
+<section class="gallery-section" style="max-width: 1100px; margin: 0 auto;">
+  <div class="card-grid">
+    {% for art in artifacts %}
+      {% set color = '#7b68ee' %}
+      {% if art.kind == 'code' %}{% set color = '#4a9e4a' %}{% endif %}
+      {% if art.kind == 'image' %}{% set color = '#e83e8c' %}{% endif %}
+      {% if art.kind == 'data' %}{% set color = '#ffc107' %}{% endif %}
+      {% if art.kind == 'note' %}{% set color = '#9b59b6' %}{% endif %}
+      <a class="persona-card" href="/workshop/projects/{{ project.id }}/artifacts/{{ art.id }}" style="--accent: {{ color }};">
+        <div class="card-accent"></div>
+        <div class="card-body">
+          <header class="card-header">
+            <h3>{{ art.name }}</h3>
+            <span class="badge badge-starter">{{ art.kind }}</span>
+          </header>
+          <p class="card-archetype">{{ art.mime }} · {{ art.size_bytes }} b</p>
+          {% if art.description %}
+            <p class="card-desc">{{ art.description }}</p>
+          {% else %}
+            <p class="card-desc dim">No description</p>
+          {% endif %}
+          <footer class="card-footer">
+            <span class="card-emoji">
+              {% for tag in art.tags[:3] %}#{{ tag }} {% endfor %}
+            </span>
+            <span class="dim small">{{ art.created_at[:10] }}</span>
+          </footer>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="empty-state">
+  <p>No artifacts yet in this project.</p>
+  <p class="dim">Agents working here can publish things via <code>POST /projects/{{ project.id }}/artifacts</code>.</p>
+</section>
+{% endif %}
+{% endblock %}

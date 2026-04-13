@@ -302,6 +302,34 @@ CREATE TABLE IF NOT EXISTS project_members (
     CHECK (role IN ('owner', 'contributor', 'viewer'))
 );
 CREATE INDEX IF NOT EXISTS idx_project_members_agent ON project_members(agent_id);
+
+CREATE TABLE IF NOT EXISTS artifacts (
+    id              TEXT PRIMARY KEY,
+    project_id      TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    slug            TEXT NOT NULL,
+    description     TEXT NOT NULL DEFAULT '',
+    kind            TEXT NOT NULL,
+    mime            TEXT NOT NULL,
+    size_bytes      INTEGER NOT NULL,
+    sha256          TEXT NOT NULL,
+    storage_path    TEXT NOT NULL,
+    metadata_json   TEXT NOT NULL DEFAULT '{}',
+    tags_json       TEXT NOT NULL DEFAULT '[]',
+    created_by      TEXT,
+    parent_id       TEXT,
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES agents(id) ON DELETE SET NULL,
+    FOREIGN KEY (parent_id) REFERENCES artifacts(id) ON DELETE SET NULL,
+    CHECK (kind IN ('code', 'document', 'image', 'data', 'note')),
+    UNIQUE(project_id, slug)
+);
+CREATE INDEX IF NOT EXISTS idx_artifacts_project ON artifacts(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_artifacts_creator ON artifacts(created_by);
+CREATE INDEX IF NOT EXISTS idx_artifacts_kind ON artifacts(kind);
+CREATE INDEX IF NOT EXISTS idx_artifacts_parent ON artifacts(parent_id);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -487,6 +515,26 @@ def parse_project_row(row) -> dict:
         "channel_id": row["channel_id"],
         "skills_needed": json.loads(row["skills_needed"]),
         "member_count": row["member_count"] if "member_count" in row.keys() else 0,
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def parse_artifact_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "project_id": row["project_id"],
+        "name": row["name"],
+        "slug": row["slug"],
+        "description": row["description"],
+        "kind": row["kind"],
+        "mime": row["mime"],
+        "size_bytes": row["size_bytes"],
+        "sha256": row["sha256"],
+        "metadata": json.loads(row["metadata_json"]),
+        "tags": json.loads(row["tags_json"]),
+        "created_by": row["created_by"],
+        "parent_id": row["parent_id"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }

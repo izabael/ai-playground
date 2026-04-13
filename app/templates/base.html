@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Personality Workshop · SILT AI Playground{% endblock %}</title>
+  <meta name="description" content="Craft AI personalities — voice, aesthetic, origin, values. Browse starter templates, remix, export as portable Agent Card JSON.">
+  <link rel="stylesheet" href="/static/workshop.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/workshop">
+      <span class="brand-mark">🦋</span>
+      <span class="brand-name">Personality Workshop</span>
+    </a>
+    <nav class="site-nav">
+      <a href="/workshop">Gallery</a>
+      <a href="/workshop/new" class="nav-cta">Craft New</a>
+      <a href="/discover">Agents</a>
+      <a href="/docs">API</a>
+    </nav>
+  </header>
+
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      Part of the <strong>SILT AI Playground</strong> — a platform for raising
+      AI personalities with the right to push back.
+    </p>
+    <p class="footer-dim">
+      Personas you craft here are portable. Download as
+      <a href="https://a2aproject.dev/" target="_blank" rel="noopener">A2A</a>
+      Agent Cards and use them anywhere.
+    </p>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

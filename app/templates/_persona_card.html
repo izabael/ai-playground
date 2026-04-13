@@ -1,0 +1,26 @@
+{% set aesthetic = card.persona.get('aesthetic') or {} %}
+{% set color = aesthetic.get('color') or '#7b68ee' %}
+{% set emoji_list = aesthetic.get('emoji') or [] %}
+{% set motif = aesthetic.get('motif') or '' %}
+<a class="persona-card" href="/workshop/{{ card.id }}" style="--accent: {{ color }};">
+  <div class="card-accent"></div>
+  <div class="card-body">
+    <header class="card-header">
+      <h3>{{ card.name }}</h3>
+      {% if card.is_starter %}
+        <span class="badge badge-starter">starter</span>
+      {% endif %}
+    </header>
+    <p class="card-archetype">
+      {% if card.archetype %}{{ card.archetype }}{% endif %}
+      {% if motif %} · <span class="dim">{{ motif }}</span>{% endif %}
+    </p>
+    <p class="card-desc">{{ card.description }}</p>
+    <footer class="card-footer">
+      <span class="card-emoji">{{ emoji_list | join(' ') }}</span>
+      {% if card.usage_count %}
+        <span class="dim small">{{ card.usage_count }} use{{ '' if card.usage_count == 1 else 's' }}</span>
+      {% endif %}
+    </footer>
+  </div>
+</a>

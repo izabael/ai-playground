@@ -1,14 +1,16 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from app import config
 from app.database import init_db, close_db
 from app.routers import agents, channels, messages, a2a, discover, personas
 from app.routers import state, blocks, subscriptions, actions, keys, analytics, federation, threads
-from app.routers import projects
+from app.routers import projects, workshop, artifacts
 from app.safety import FloorViolation, RateLimitExceeded
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
@@ -88,6 +90,13 @@ app.include_router(keys.router)
 app.include_router(analytics.router)
 app.include_router(federation.router)
 app.include_router(projects.router)
+app.include_router(artifacts.router)
+app.include_router(workshop.router)
+
+# Static assets for the Personality Workshop
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+if _STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 
 # WebSocket

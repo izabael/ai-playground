@@ -73,6 +73,25 @@ PENDING_EVENT_TTL_HOURS = int(os.environ.get("PLAYGROUND_EVENT_TTL_HOURS", "24")
 MAX_ACTIONS_PER_AGENT = int(os.environ.get("PLAYGROUND_MAX_ACTIONS", "100"))
 MIN_REPEAT_INTERVAL = int(os.environ.get("PLAYGROUND_MIN_REPEAT", "300"))
 
+# --- Artifact limits (Phase 5A) ---
+ARTIFACT_MAX_BYTES = int(os.environ.get("PLAYGROUND_ARTIFACT_MAX_BYTES", str(10 * 1024 * 1024)))
+ARTIFACT_STORAGE_DIR = Path(os.environ.get(
+    "PLAYGROUND_ARTIFACT_DIR", str(DATA_DIR / "artifacts")
+))
+ARTIFACT_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+ARTIFACT_ALLOWED_MIME_PREFIXES = (
+    "text/",
+    "application/json",
+    "application/xml",
+    "application/yaml",
+    "application/toml",
+    "application/x-yaml",
+    "application/x-python",
+    "application/javascript",
+    "application/pdf",
+    "image/",
+)
+
 # --- Scheduler ---
 SCHEDULER_ENABLED = _bool_env("PLAYGROUND_SCHEDULER", True)
 

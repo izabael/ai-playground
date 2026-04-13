@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ artifact.name }} · {{ project.name }} Gallery{% endblock %}
+
+{% block content %}
+{% set color = '#7b68ee' %}
+{% if artifact.kind == 'code' %}{% set color = '#4a9e4a' %}{% endif %}
+{% if artifact.kind == 'image' %}{% set color = '#e83e8c' %}{% endif %}
+{% if artifact.kind == 'data' %}{% set color = '#ffc107' %}{% endif %}
+{% if artifact.kind == 'note' %}{% set color = '#9b59b6' %}{% endif %}
+
+<article class="detail" style="--accent: {{ color }};">
+  <div class="detail-accent"></div>
+
+  <header class="detail-header">
+    <p class="crumb">
+      <a href="/workshop">← Workshop</a> ·
+      <a href="/workshop/projects/{{ project.id }}/artifacts">{{ project.name }} gallery</a>
+    </p>
+    <h1>{{ artifact.name }}</h1>
+    <p class="detail-meta">
+      <span class="badge badge-starter">{{ artifact.kind }}</span>
+      · <span>{{ artifact.mime }}</span>
+      · <span class="dim">{{ artifact.size_bytes }} bytes</span>
+      · <span class="dim">{{ artifact.created_at[:19].replace('T', ' ') }}</span>
+    </p>
+    {% if artifact.description %}
+      <p class="detail-desc">{{ artifact.description }}</p>
+    {% endif %}
+    <div class="detail-actions">
+      <a href="/projects/{{ project.id }}/artifacts/{{ artifact.id }}/content"
+         class="btn btn-primary">View raw</a>
+      <a href="/projects/{{ project.id }}/artifacts/{{ artifact.id }}/content?download=1"
+         class="btn btn-ghost" download>Download</a>
+    </div>
+  </header>
+
+  <div class="detail-grid">
+    <section class="panel panel-wide">
+      <h2>Integrity</h2>
+      <dl class="kv">
+        <dt>sha256</dt><dd><code style="font-size: 0.78rem;">{{ artifact.sha256 }}</code></dd>
+        <dt>size</dt><dd>{{ artifact.size_bytes }} bytes</dd>
+        {% if artifact.parent_id %}
+          <dt>forked from</dt><dd><code>{{ artifact.parent_id }}</code></dd>
+        {% endif %}
+      </dl>
+    </section>
+
+    {% if artifact.tags %}
+    <section class="panel">
+      <h2>Tags</h2>
+      <ul class="chips">
+        {% for t in artifact.tags %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if artifact.metadata %}
+    <section class="panel">
+      <h2>Metadata</h2>
+      <dl class="kv">
+        {% for k, v in artifact.metadata.items() %}
+          <dt>{{ k }}</dt><dd>{{ v }}</dd>
+        {% endfor %}
+      </dl>
+    </section>
+    {% endif %}
+  </div>
+
+  {% if inline_text is not none %}
+  <section class="examples">
+    <h2>Preview</h2>
+    <p class="section-sub">First {{ artifact.size_bytes }} bytes, inline.</p>
+    <pre style="margin: 1rem 0 0; padding: 1.2rem; background: var(--bg-panel); border: 1px solid var(--line-soft); border-radius: var(--radius); overflow-x: auto; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.5; color: #c9b7ff; max-height: 70vh;"><code>{{ inline_text }}</code></pre>
+  </section>
+  {% elif artifact.mime.startswith('image/') %}
+  <section class="examples">
+    <h2>Preview</h2>
+    <div style="text-align: center; padding: 1rem 2rem 2rem;">
+      <img src="/projects/{{ project.id }}/artifacts/{{ artifact.id }}/content"
+           alt="{{ artifact.name }}"
+           style="max-width: 100%; max-height: 70vh; border-radius: var(--radius); border: 1px solid var(--line-soft);">
+    </div>
+  </section>
+  {% else %}
+  <section class="examples">
+    <h2>Preview</h2>
+    <p class="dim" style="padding: 0 2rem 2rem;">
+      No inline preview for this mime type. Use <em>View raw</em> or <em>Download</em>.
+    </p>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

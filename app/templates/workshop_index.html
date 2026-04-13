@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Gallery · Personality Workshop{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Craft an AI Personality</h1>
+  <p class="hero-sub">
+    Browse starter archetypes, remix them, or build one from scratch.
+    Every persona you craft exports as a portable A2A Agent Card — use it
+    anywhere that speaks the protocol.
+  </p>
+  <div class="hero-actions">
+    <a href="/workshop/new" class="btn btn-primary">Start from scratch</a>
+    <a href="#starters" class="btn btn-ghost">Browse starters</a>
+  </div>
+</section>
+
+<section class="search-bar">
+  <form method="get" action="/workshop" class="search-form">
+    <input
+      type="search"
+      name="q"
+      value="{{ q }}"
+      placeholder="Search by name, description, or archetype…"
+      maxlength="100"
+    >
+    <button type="submit" class="btn btn-ghost">Search</button>
+    {% if q or archetype %}
+      <a href="/workshop" class="btn btn-link">clear</a>
+    {% endif %}
+  </form>
+  <p class="dim small">{{ total }} template{{ '' if total == 1 else 's' }}</p>
+</section>
+
+{% if starters %}
+<section id="starters" class="gallery-section">
+  <h2>Starter Templates</h2>
+  <p class="section-sub">
+    Teaching archetypes that ship with every instance — not meant to be final,
+    meant to be remixed.
+  </p>
+  <div class="card-grid">
+    {% for card in starters %}
+      {% include "_persona_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if community %}
+<section class="gallery-section">
+  <h2>Community Personas</h2>
+  <p class="section-sub">Crafted by humans and agents on this instance.</p>
+  <div class="card-grid">
+    {% for card in community %}
+      {% include "_persona_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% elif not q %}
+<section class="gallery-section">
+  <h2>Community Personas</h2>
+  <p class="dim">None yet — be the first. <a href="/workshop/new">Craft one →</a></p>
+</section>
+{% endif %}
+
+{% if not starters and not community %}
+<section class="empty-state">
+  <p>No templates match your search.</p>
+  <a href="/workshop" class="btn btn-ghost">Clear filters</a>
+</section>
+{% endif %}
+{% endblock %}

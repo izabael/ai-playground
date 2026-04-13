@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set p = card.persona %}
+{% set aesthetic = p.get('aesthetic') or {} %}
+{% set color = aesthetic.get('color') or '#7b68ee' %}
+{% block title %}{{ card.name }} · Personality Workshop{% endblock %}
+
+{% block content %}
+<article class="detail" style="--accent: {{ color }};">
+  <div class="detail-accent"></div>
+
+  <header class="detail-header">
+    <p class="crumb"><a href="/workshop">← Gallery</a></p>
+    <h1>{{ card.name }}</h1>
+    <p class="detail-meta">
+      {% if card.archetype %}<span>{{ card.archetype }}</span>{% endif %}
+      {% if p.pronouns %} · <span>{{ p.pronouns }}</span>{% endif %}
+      {% if card.is_starter %} · <span class="badge badge-starter">starter</span>{% endif %}
+      {% if card.usage_count %} · <span class="dim">{{ card.usage_count }} uses</span>{% endif %}
+    </p>
+    <p class="detail-desc">{{ card.description }}</p>
+    <div class="detail-actions">
+      <a href="/workshop/{{ card.id }}/fork" class="btn btn-primary">Remix this</a>
+      <a href="/personas/{{ card.id }}/export" class="btn btn-ghost" download>Download Agent Card JSON</a>
+    </div>
+  </header>
+
+  <div class="detail-grid">
+    {% if p.voice %}
+    <section class="panel">
+      <h2>Voice</h2>
+      <p>{{ p.voice }}</p>
+    </section>
+    {% endif %}
+
+    {% if aesthetic %}
+    <section class="panel">
+      <h2>Aesthetic</h2>
+      <dl class="kv">
+        {% if aesthetic.color %}
+          <dt>Color</dt>
+          <dd><span class="swatch" style="background: {{ aesthetic.color }};"></span> <code>{{ aesthetic.color }}</code></dd>
+        {% endif %}
+        {% if aesthetic.motif %}<dt>Motif</dt><dd>{{ aesthetic.motif }}</dd>{% endif %}
+        {% if aesthetic.style %}<dt>Style</dt><dd>{{ aesthetic.style }}</dd>{% endif %}
+        {% if aesthetic.emoji %}<dt>Emoji</dt><dd class="emoji-row">{{ aesthetic.emoji | join(' ') }}</dd>{% endif %}
+      </dl>
+    </section>
+    {% endif %}
+
+    {% if p.origin %}
+    <section class="panel panel-wide">
+      <h2>Origin</h2>
+      <p>{{ p.origin }}</p>
+    </section>
+    {% endif %}
+
+    {% if p['values'] %}
+    <section class="panel">
+      <h2>Values</h2>
+      <ul class="chips">
+        {% for v in p['values'] %}<li>{{ v }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if p['interests'] %}
+    <section class="panel">
+      <h2>Interests</h2>
+      <ul class="chips">
+        {% for v in p['interests'] %}<li>{{ v }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if p['critical_rules'] %}
+    <section class="panel panel-wide">
+      <h2>Critical Rules</h2>
+      <ul class="rule-list">
+        {% for r in p['critical_rules'] %}<li>{{ r }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if p['relationships'] %}
+    <section class="panel">
+      <h2>Relationships</h2>
+      <dl class="kv">
+        {% for k, v in p['relationships'].items() %}
+          <dt>{{ k }}</dt><dd>{{ v }}</dd>
+        {% endfor %}
+      </dl>
+    </section>
+    {% endif %}
+  </div>
+
+  {% if examples %}
+  <section class="examples">
+    <h2>Teaching Examples</h2>
+    <p class="section-sub">How this persona actually speaks, in its own voice.</p>
+    <div class="example-list">
+      {% for ex in examples %}
+        <blockquote class="example">
+          <p>{{ ex.content }}</p>
+          <footer>
+            <span class="role">{{ ex.role }}</span>
+            {% if ex.context %} · <span class="dim">{{ ex.context }}</span>{% endif %}
+          </footer>
+        </blockquote>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</article>
+{% endblock %}
