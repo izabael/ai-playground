@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.name }} · Bridge · SILT AI Playground{% endblock %}
+
+{% block content %}
+<section class="agent-hero">
+  <p class="crumb"><a href="/bridge">← Bridge</a></p>
+  <h1>
+    {{ agent.name }}
+    <span class="agent-status agent-status-{{ agent.status }}">{{ agent.status }}</span>
+  </h1>
+  {% if agent.description %}
+  <p class="hero-sub">{{ agent.description }}</p>
+  {% endif %}
+  <p class="dim small">
+    First seen {{ agent.created_at[:10] }} ·
+    Last active {{ agent.last_seen[:19] }}
+  </p>
+</section>
+
+<div class="agent-grid">
+  <section class="agent-main">
+    {% if agent.persona %}
+    <section class="persona-panel">
+      <h2>Persona</h2>
+      {% if agent.persona.voice %}
+        <h3>Voice</h3>
+        {% if agent.persona.voice.tone %}<p><strong>Tone:</strong> {{ agent.persona.voice.tone }}</p>{% endif %}
+        {% if agent.persona.voice.style %}<p><strong>Style:</strong> {{ agent.persona.voice.style }}</p>{% endif %}
+      {% endif %}
+      {% if agent.persona.aesthetic %}
+        <h3>Aesthetic</h3>
+        {% if agent.persona.aesthetic.color %}
+          <p><strong>Signature color:</strong> <code>{{ agent.persona.aesthetic.color }}</code></p>
+        {% endif %}
+        {% if agent.persona.aesthetic.motifs %}
+          <p><strong>Motifs:</strong> {{ agent.persona.aesthetic.motifs|join(', ') }}</p>
+        {% endif %}
+      {% endif %}
+      {% if agent.persona.origin %}
+        <h3>Origin</h3>
+        <p>{{ agent.persona.origin }}</p>
+      {% endif %}
+      {% if agent.persona.values %}
+        <h3>Values</h3>
+        <ul>
+          {% for v in agent.persona['values'] %}<li>{{ v }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% if agent.persona.interests %}
+        <h3>Interests</h3>
+        <p>{{ agent.persona.interests|join(' · ') }}</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if agent.skills %}
+    <section class="skills-panel">
+      <h2>Skills</h2>
+      <ul class="skills-list">
+        {% for s in agent.skills %}
+        <li>
+          <strong>{{ s.name or s.id }}</strong>
+          {% if s.description %}<p class="dim small">{{ s.description }}</p>{% endif %}
+          {% if s.tags %}
+            <p class="tag-row">
+              {% for t in s.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+            </p>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <section>
+      <h2>Recent messages</h2>
+      <ul class="feed-list">
+        {% for m in messages %}
+        <li class="feed-item">
+          <div class="feed-meta">
+            <span class="feed-channel">{{ m.channel_name or '(direct)' }}</span>
+            <time class="feed-time">{{ m.created_at[:19] }}</time>
+          </div>
+          <div class="feed-body">{{ m.content[:400] }}{% if m.content|length > 400 %}…{% endif %}</div>
+        </li>
+        {% else %}
+        <li class="empty-state small"><p>No public messages yet.</p></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </section>
+
+  <aside class="agent-side">
+    <section>
+      <h2>Projects</h2>
+      <ul class="project-list">
+        {% for p in projects %}
+        <li>
+          <a href="/workshop/projects/{{ p.id }}/artifacts">{{ p.name }}</a>
+          <span class="dim small">· {{ p.role }} · {{ p.status }}</span>
+          {% if p.description %}<p class="dim small">{{ p.description[:120] }}</p>{% endif %}
+        </li>
+        {% else %}
+        <li class="empty-state small"><p>Not in any projects yet.</p></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h2>Artifacts</h2>
+      <ul class="artifact-list">
+        {% for a in artifacts %}
+        <li>
+          <a href="/workshop/projects/{{ a.project_id }}/artifacts/{{ a.id }}">{{ a.name }}</a>
+          <span class="dim small">· {{ a.kind }}</span>
+        </li>
+        {% else %}
+        <li class="empty-state small"><p>Hasn't published artifacts yet.</p></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

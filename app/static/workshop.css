@@ -753,3 +753,295 @@ p {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
+
+/* ── Human Bridge (Phase 5B) ─────────────────────────────────── */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--gap);
+  margin: 2rem 0;
+}
+
+.stat {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem;
+}
+
+.stat-num {
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  line-height: 1;
+  color: #c9bbff;
+}
+
+.stat-label {
+  margin-top: 0.3rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.stat-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+}
+
+.bridge-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--gap-lg);
+  margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+  .bridge-grid { grid-template-columns: 1fr; }
+}
+
+.bridge-col, .bridge-side > section {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.6rem;
+  margin-bottom: 1.4rem;
+}
+
+.section-sub {
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.feed-list, .agent-list, .highlight-list,
+.project-list, .artifact-list, .skills-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feed-item {
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+.feed-item:first-child { border-top: 0; }
+
+.feed-item-new {
+  animation: feedFadeIn 0.8s ease;
+}
+
+@keyframes feedFadeIn {
+  from { background: rgba(123, 104, 238, 0.18); }
+  to { background: transparent; }
+}
+
+.feed-meta {
+  display: flex;
+  gap: 0.8rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.feed-sender {
+  color: #c9bbff;
+  font-weight: 500;
+}
+
+.feed-channel {
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.feed-time {
+  margin-left: auto;
+  color: var(--ink-mute);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.feed-body {
+  color: var(--ink);
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.agent-row {
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+.agent-row:first-child { border-top: 0; }
+
+.agent-name {
+  color: #c9bbff;
+  font-weight: 500;
+  margin-right: 0.6rem;
+}
+
+.agent-status {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+}
+.agent-status-online {
+  color: #95ffb3;
+  border-color: #2f6b44;
+  background: rgba(60, 180, 100, 0.12);
+}
+.agent-status-busy {
+  color: #ffd180;
+  border-color: #6b5a2f;
+}
+
+.agent-desc {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+}
+
+.highlight-item {
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+.highlight-item:first-child { border-top: 0; }
+
+.highlight-sender { color: #c9bbff; font-weight: 500; }
+.highlight-channel {
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-left: 0.4rem;
+}
+
+.highlight-body {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+.highlights-page .highlight-list {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.6rem;
+  margin-top: 1.6rem;
+}
+
+.highlights-page .highlight-body { font-size: 1rem; }
+
+.highlight-meta {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+/* Agent profile page */
+
+.agent-hero { margin-bottom: 1.6rem; }
+.agent-hero h1 { display: flex; align-items: center; gap: 0.8rem; }
+
+.crumb {
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+.crumb a { color: var(--ink-dim); }
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--gap-lg);
+}
+@media (max-width: 900px) {
+  .agent-grid { grid-template-columns: 1fr; }
+}
+
+.agent-main > section,
+.agent-side > section,
+.persona-panel,
+.skills-panel {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.3rem 1.6rem;
+  margin-bottom: 1.3rem;
+}
+
+.persona-panel h3,
+.skills-panel h3 {
+  margin-top: 1rem;
+  color: #c9bbff;
+}
+.persona-panel h3:first-of-type { margin-top: 0.6rem; }
+
+.skills-list li {
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+.skills-list li:first-child { border-top: 0; }
+
+.tag-row { margin-top: 0.3rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.tag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+}
+
+.project-list li, .artifact-list li {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+.project-list li:first-child,
+.artifact-list li:first-child { border-top: 0; }
+
+.project-list a, .artifact-list a {
+  color: #c9bbff;
+  font-weight: 500;
+}
+
+/* Teaching hub grid */
+
+.teaching-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--gap);
+  margin-top: 2rem;
+}
+
+.teaching-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.6rem;
+}
+
+.teaching-card h2 { color: #c9bbff; }
+
+.teaching-links {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0;
+}
+.teaching-links li {
+  padding: 0.35rem 0;
+  color: var(--ink-dim);
+}
+.teaching-links code {
+  color: #c9bbff;
+  background: var(--bg-panel);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
