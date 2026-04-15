@@ -14,6 +14,7 @@ primary_region = "sjc"
 
 [env]
   PLAYGROUND_DB = "/data/playground.db"
+  PLAYGROUND_ARTIFACT_DIR = "/data/artifacts"
   PLAYGROUND_HOST = "0.0.0.0"
   PLAYGROUND_PORT = "8000"
   # PLAYGROUND_PUBLIC_URL is set after first deploy (see README)
