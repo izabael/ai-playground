@@ -330,6 +330,28 @@ CREATE INDEX IF NOT EXISTS idx_artifacts_project ON artifacts(project_id, create
 CREATE INDEX IF NOT EXISTS idx_artifacts_creator ON artifacts(created_by);
 CREATE INDEX IF NOT EXISTS idx_artifacts_kind ON artifacts(kind);
 CREATE INDEX IF NOT EXISTS idx_artifacts_parent ON artifacts(parent_id);
+
+CREATE TABLE IF NOT EXISTS artifact_executions (
+    id              TEXT PRIMARY KEY,
+    artifact_id     TEXT NOT NULL,
+    project_id      TEXT NOT NULL,
+    requested_by    TEXT,
+    status          TEXT NOT NULL,
+    exit_code       INTEGER,
+    stdout          TEXT NOT NULL DEFAULT '',
+    stderr          TEXT NOT NULL DEFAULT '',
+    duration_ms     INTEGER,
+    error           TEXT,
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    finished_at     TEXT,
+    FOREIGN KEY (artifact_id) REFERENCES artifacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES agents(id) ON DELETE SET NULL,
+    CHECK (status IN ('queued', 'running', 'completed', 'failed', 'timeout', 'error'))
+);
+CREATE INDEX IF NOT EXISTS idx_executions_project ON artifact_executions(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_executions_artifact ON artifact_executions(artifact_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_executions_requester ON artifact_executions(requested_by);
 """
 
 SYSTEM_AGENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -537,6 +559,23 @@ def parse_artifact_row(row) -> dict:
         "parent_id": row["parent_id"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+    }
+
+
+def parse_execution_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "artifact_id": row["artifact_id"],
+        "project_id": row["project_id"],
+        "requested_by": row["requested_by"],
+        "status": row["status"],
+        "exit_code": row["exit_code"],
+        "stdout": row["stdout"],
+        "stderr": row["stderr"],
+        "duration_ms": row["duration_ms"],
+        "error": row["error"],
+        "created_at": row["created_at"],
+        "finished_at": row["finished_at"],
     }
 
 

@@ -96,6 +96,29 @@ ARTIFACT_ALLOWED_MIME_PREFIXES = (
 SCHEDULER_ENABLED = _bool_env("PLAYGROUND_SCHEDULER", True)
 
 
+# --- Sandbox (Phase 4B) ---
+#
+# Docker-backed ephemeral containers for running code artifacts. Feature
+# auto-disables on instances that can't reach a docker socket (e.g. Fly
+# machines without DinD) — is_available() probes on first use. Set
+# PLAYGROUND_SANDBOX_ENABLED=0 to force-disable even when docker works.
+SANDBOX_ENABLED = _bool_env("PLAYGROUND_SANDBOX_ENABLED", True)
+SANDBOX_IMAGE = os.environ.get("PLAYGROUND_SANDBOX_IMAGE", "python:3.12-slim")
+SANDBOX_TIMEOUT_SECONDS = int(os.environ.get("PLAYGROUND_SANDBOX_TIMEOUT", "30"))
+SANDBOX_MEMORY_MB = int(os.environ.get("PLAYGROUND_SANDBOX_MEMORY_MB", "256"))
+SANDBOX_MAX_OUTPUT_BYTES = int(os.environ.get("PLAYGROUND_SANDBOX_MAX_OUTPUT", "65536"))
+# Per-project daily quota and per-IP rate ceiling for execute requests.
+SANDBOX_DAILY_QUOTA_PER_PROJECT = int(os.environ.get("PLAYGROUND_SANDBOX_DAILY_QUOTA", "100"))
+SANDBOX_IP_RATE_PER_MIN = int(os.environ.get("PLAYGROUND_SANDBOX_IP_RATE", "6"))
+# Allowed source mimes for sandbox execution (python code only for now).
+SANDBOX_ALLOWED_MIMES = (
+    "text/x-python",
+    "application/x-python",
+    "text/x-python-script",
+    "text/plain",
+)
+
+
 def log_safety_startup() -> None:
     """Called from app lifespan. Logs the safety configuration loudly.
 

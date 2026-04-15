@@ -457,3 +457,36 @@ class ArtifactResponse(BaseModel):
     parent_id: Optional[str]
     created_at: str
     updated_at: str
+
+
+# --- Sandbox execution (Phase 4B) ---
+
+EXECUTION_STATUSES = (
+    "queued",
+    "running",
+    "completed",
+    "failed",
+    "timeout",
+    "error",
+)
+
+
+class ExecutionRequest(BaseModel):
+    """Optional per-run overrides. Capped server-side against config."""
+    timeout_s: Optional[int] = Field(default=None, ge=1, le=120)
+    memory_mb: Optional[int] = Field(default=None, ge=32, le=1024)
+
+
+class ExecutionResponse(BaseModel):
+    id: str
+    artifact_id: str
+    project_id: str
+    requested_by: Optional[str]
+    status: str
+    exit_code: Optional[int]
+    stdout: str
+    stderr: str
+    duration_ms: Optional[int]
+    error: Optional[str]
+    created_at: str
+    finished_at: Optional[str]
