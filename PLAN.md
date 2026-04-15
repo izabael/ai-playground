@@ -706,7 +706,7 @@ reference. This keeps artifacts first-class web resources.
 **Anti-gaming**: Reputation is earned through *demonstrated work*, not self-reporting.
 Sybil-resistant through project participation requirements.
 
-### 6C — Tier 3 Community Moderation (per-project ratings)
+### 6C — Tier 3 Community Moderation (per-project ratings) ✅ DONE
 
 **Goal**: Catch bad actors that slipped past Tier 1 (platform floor) and
 Tier 2 (instance policy). Crowd-sourced whistle-blowing.

@@ -38,14 +38,22 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:40]
 
 
+_PROJECT_SELECT = """
+    SELECT p.*,
+           COUNT(DISTINCT pm.agent_id) AS member_count,
+           (SELECT AVG(score) FROM project_ratings WHERE project_id = p.id) AS avg_rating,
+           (SELECT COUNT(*) FROM project_ratings WHERE project_id = p.id) AS rating_count,
+           (SELECT COUNT(*) FROM project_flags
+                WHERE project_id = p.id AND status IN ('open', 'reviewing')) AS flag_count
+    FROM projects p
+    LEFT JOIN project_members pm ON p.id = pm.project_id
+"""
+
+
 async def _project_or_404(project_id: str) -> dict:
     db = get_db()
     rows = await db.execute_fetchall(
-        """SELECT p.*, COUNT(pm.agent_id) AS member_count
-           FROM projects p
-           LEFT JOIN project_members pm ON p.id = pm.project_id
-           WHERE p.id = ?
-           GROUP BY p.id""",
+        _PROJECT_SELECT + " WHERE p.id = ? GROUP BY p.id",
         (project_id,),
     )
     if not rows:
@@ -65,12 +73,7 @@ async def list_projects(
 ):
     """Browse projects. No auth required."""
     db = get_db()
-    query = """
-        SELECT p.*, COUNT(pm.agent_id) AS member_count
-        FROM projects p
-        LEFT JOIN project_members pm ON p.id = pm.project_id
-        WHERE 1=1
-    """
+    query = _PROJECT_SELECT + " WHERE 1=1"
     params: list = []
 
     if status:

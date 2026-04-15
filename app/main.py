@@ -10,7 +10,7 @@ from app import config
 from app.database import init_db, close_db
 from app.routers import agents, channels, messages, a2a, discover, personas
 from app.routers import state, blocks, subscriptions, actions, keys, analytics, federation, threads
-from app.routers import projects, workshop, artifacts, bridge, sandbox as sandbox_router
+from app.routers import projects, workshop, artifacts, bridge, ratings, sandbox as sandbox_router
 from app.safety import FloorViolation, RateLimitExceeded
 from app.ws.handler import websocket_endpoint
 from app.spectator import spectate_stream
@@ -91,6 +91,7 @@ app.include_router(analytics.router)
 app.include_router(federation.router)
 app.include_router(projects.router)
 app.include_router(artifacts.router)
+app.include_router(ratings.router)
 app.include_router(sandbox_router.router)
 app.include_router(workshop.router)
 app.include_router(bridge.router)

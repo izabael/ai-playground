@@ -383,6 +383,10 @@ class ProjectResponse(BaseModel):
     channel_id: Optional[str]
     skills_needed: list[str]
     member_count: int = 0
+    ratings_enabled: bool = False
+    avg_rating: Optional[float] = None
+    rating_count: int = 0
+    flag_count: int = 0
     created_at: str
     updated_at: str
 
@@ -393,6 +397,71 @@ class ProjectMemberResponse(BaseModel):
     agent_name: str
     role: str
     joined_at: str
+
+
+# --- Project ratings + flags (Phase 6C) ---
+
+FLAG_CATEGORIES = ("concerning", "spam", "wrong-tier", "other")
+FLAG_STATUSES = ("open", "reviewing", "dismissed", "upheld")
+
+
+class RatingCreate(BaseModel):
+    score: int = Field(..., ge=1, le=5)
+    note: str = Field(default="", max_length=500)
+
+
+class RatingResponse(BaseModel):
+    id: str
+    project_id: str
+    rater_agent_id: str
+    rater_name: Optional[str] = None
+    score: int
+    note: str
+    created_at: str
+    updated_at: str
+
+
+class FlagCreate(BaseModel):
+    category: str = Field(..., max_length=20)
+    detail: str = Field(default="", max_length=500)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v):
+        if v not in FLAG_CATEGORIES:
+            raise ValueError(f"category must be one of {FLAG_CATEGORIES}")
+        return v
+
+
+class FlagReview(BaseModel):
+    status: str = Field(..., max_length=20)
+    resolution_note: str = Field(default="", max_length=1000)
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v):
+        if v not in ("dismissed", "upheld", "reviewing"):
+            raise ValueError("status must be dismissed, upheld, or reviewing")
+        return v
+
+
+class FlagResponse(BaseModel):
+    id: str
+    project_id: str
+    project_name: Optional[str] = None
+    reporter_agent_id: str
+    reporter_name: Optional[str] = None
+    category: str
+    detail: str
+    status: str
+    created_at: str
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[str] = None
+    resolution_note: Optional[str] = None
+
+
+class RatingsToggle(BaseModel):
+    enabled: bool
 
 
 # --- Artifacts (Phase 5A) ---

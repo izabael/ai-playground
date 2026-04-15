@@ -119,6 +119,23 @@ SANDBOX_ALLOWED_MIMES = (
 )
 
 
+# --- Tier 3 community moderation (Phase 6C) ---
+#
+# Per-project ratings and flags are opt-in per project. When a project
+# owner enables ratings, authenticated agents can rate (1-5) and flag
+# (concerning / spam / wrong-tier / other). Flags escalate to a
+# moderator queue gated by PLAYGROUND_MODERATOR_TOKEN.
+#
+# Anti-gaming knobs:
+#   - rater age floor: agents younger than N seconds can't rate/flag
+#   - daily caps on rating + flag creates per rater (per-IP rate limits
+#     are in the router, not here)
+MODERATOR_TOKEN = os.environ.get("PLAYGROUND_MODERATOR_TOKEN", "")
+RATING_MIN_AGENT_AGE_SECONDS = int(os.environ.get("PLAYGROUND_RATING_MIN_AGE", "86400"))  # 1 day
+RATING_DAILY_CAP_PER_AGENT = int(os.environ.get("PLAYGROUND_RATING_DAILY_CAP", "60"))
+FLAG_DAILY_CAP_PER_AGENT = int(os.environ.get("PLAYGROUND_FLAG_DAILY_CAP", "30"))
+
+
 def log_safety_startup() -> None:
     """Called from app lifespan. Logs the safety configuration loudly.
 

@@ -282,6 +282,7 @@ CREATE TABLE IF NOT EXISTS projects (
     status          TEXT NOT NULL DEFAULT 'planning',
     channel_id      TEXT,
     skills_needed   TEXT NOT NULL DEFAULT '[]',
+    ratings_enabled INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
     FOREIGN KEY (created_by) REFERENCES agents(id) ON DELETE CASCADE,
@@ -331,6 +332,42 @@ CREATE INDEX IF NOT EXISTS idx_artifacts_creator ON artifacts(created_by);
 CREATE INDEX IF NOT EXISTS idx_artifacts_kind ON artifacts(kind);
 CREATE INDEX IF NOT EXISTS idx_artifacts_parent ON artifacts(parent_id);
 
+CREATE TABLE IF NOT EXISTS project_ratings (
+    id              TEXT PRIMARY KEY,
+    project_id      TEXT NOT NULL,
+    rater_agent_id  TEXT NOT NULL,
+    score           INTEGER NOT NULL,
+    note            TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (rater_agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    CHECK (score BETWEEN 1 AND 5),
+    UNIQUE(project_id, rater_agent_id)
+);
+CREATE INDEX IF NOT EXISTS idx_ratings_project ON project_ratings(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ratings_rater ON project_ratings(rater_agent_id, created_at);
+
+CREATE TABLE IF NOT EXISTS project_flags (
+    id              TEXT PRIMARY KEY,
+    project_id      TEXT NOT NULL,
+    reporter_agent_id TEXT NOT NULL,
+    category        TEXT NOT NULL,
+    detail          TEXT NOT NULL DEFAULT '',
+    status          TEXT NOT NULL DEFAULT 'open',
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f', 'now')),
+    reviewed_by     TEXT,
+    reviewed_at     TEXT,
+    resolution_note TEXT,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (reporter_agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    CHECK (category IN ('concerning', 'spam', 'wrong-tier', 'other')),
+    CHECK (status IN ('open', 'reviewing', 'dismissed', 'upheld'))
+);
+CREATE INDEX IF NOT EXISTS idx_flags_project ON project_flags(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_flags_status ON project_flags(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_flags_reporter ON project_flags(reporter_agent_id, created_at);
+
 CREATE TABLE IF NOT EXISTS artifact_executions (
     id              TEXT PRIMARY KEY,
     artifact_id     TEXT NOT NULL,
@@ -376,6 +413,7 @@ async def init_db():
     await _add_column_if_missing("messages", "parent_message_id", "TEXT")
     await _add_column_if_missing("messages", "topic", "TEXT")
     await _add_column_if_missing("agents", "home_instance", "TEXT")  # NULL = local
+    await _add_column_if_missing("projects", "ratings_enabled", "INTEGER NOT NULL DEFAULT 0")
     await _db.commit()
 
     # Ensure system agent exists (for #lobby ownership)
@@ -528,6 +566,7 @@ def parse_subscription_row(row) -> dict:
 
 
 def parse_project_row(row) -> dict:
+    keys = row.keys()
     return {
         "id": row["id"],
         "name": row["name"],
@@ -536,9 +575,45 @@ def parse_project_row(row) -> dict:
         "status": row["status"],
         "channel_id": row["channel_id"],
         "skills_needed": json.loads(row["skills_needed"]),
-        "member_count": row["member_count"] if "member_count" in row.keys() else 0,
+        "member_count": row["member_count"] if "member_count" in keys else 0,
+        "ratings_enabled": bool(row["ratings_enabled"]) if "ratings_enabled" in keys else False,
+        "avg_rating": row["avg_rating"] if "avg_rating" in keys else None,
+        "rating_count": row["rating_count"] if "rating_count" in keys else 0,
+        "flag_count": row["flag_count"] if "flag_count" in keys else 0,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+    }
+
+
+def parse_rating_row(row) -> dict:
+    keys = row.keys()
+    return {
+        "id": row["id"],
+        "project_id": row["project_id"],
+        "rater_agent_id": row["rater_agent_id"],
+        "rater_name": row["rater_name"] if "rater_name" in keys else None,
+        "score": row["score"],
+        "note": row["note"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def parse_flag_row(row) -> dict:
+    keys = row.keys()
+    return {
+        "id": row["id"],
+        "project_id": row["project_id"],
+        "project_name": row["project_name"] if "project_name" in keys else None,
+        "reporter_agent_id": row["reporter_agent_id"],
+        "reporter_name": row["reporter_name"] if "reporter_name" in keys else None,
+        "category": row["category"],
+        "detail": row["detail"],
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "reviewed_by": row["reviewed_by"],
+        "reviewed_at": row["reviewed_at"],
+        "resolution_note": row["resolution_note"],
     }
 
 
