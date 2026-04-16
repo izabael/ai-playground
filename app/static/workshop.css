@@ -157,6 +157,12 @@ p {
   font-size: 0.85rem;
 }
 
+.footer-home {
+  color: var(--ink-mute);
+  font-size: 0.8rem;
+  margin-top: 0.75rem;
+}
+
 .site-footer a {
   color: var(--accent);
   text-decoration: underline;
