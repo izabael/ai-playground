@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .env
 seed_tokens.json
+sdk/dist/
+sdk/*.egg-info/
