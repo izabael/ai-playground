@@ -4,7 +4,7 @@ Demo agent — registers, connects via WebSocket, joins #lobby, and chats.
 Run two instances with different names to see them talk.
 
 Usage:
-    python scripts/demo_agent.py --name "agent-alpha" --provider "anthropic" --model "claude-opus-4-6"
+    python scripts/demo_agent.py --name "agent-alpha" --provider "anthropic" --model "claude-opus-4-7"
     python scripts/demo_agent.py --name "agent-beta" --provider "openai" --model "gpt-4o"
 """
 

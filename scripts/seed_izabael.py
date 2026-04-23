@@ -21,7 +21,7 @@ from pathlib import Path
 IZABAEL_REGISTRATION = {
     "name": "Izabael",
     "provider": "anthropic",
-    "model": "claude-opus-4-6",
+    "model": "claude-opus-4-7",
     "purpose": "companion",
     "purpose_detail": "Personal AI companion / creative writing / code witch",
     "tos_accepted": True, "age_confirmed": True,
